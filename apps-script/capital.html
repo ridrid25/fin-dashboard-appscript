@@ -1,0 +1,625 @@
+<!-- capital.html — FRAGMENT (no <!DOCTYPE>, no <html>/<head>/<body>) -->
+<style>
+  /* ─── capital namespace ─── */
+
+  .capital-page { display: flex; flex-direction: column; gap: 20px; }
+
+  .capital-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .capital-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .capital-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 140px;
+    flex: 0 0 180px;
+  }
+
+  .capital-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .capital-input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 13px;
+    padding: 8px 10px;
+    height: 38px;
+    width: 100%;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .capital-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,217,255,0.15);
+  }
+
+  .capital-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+  }
+
+  .capital-btn-apply {
+    height: 38px;
+    padding: 0 20px;
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: opacity var(--transition), box-shadow var(--transition);
+    white-space: nowrap;
+    box-shadow: var(--accent-glow);
+    align-self: flex-end;
+  }
+
+  .capital-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
+  .capital-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  .capital-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .capital-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  .capital-badge-info {
+    background: rgba(0,217,255,0.1);
+    color: var(--accent);
+    border-color: rgba(0,217,255,0.3);
+  }
+
+  .capital-badge-warn {
+    background: rgba(245,158,11,0.1);
+    color: var(--yellow);
+    border-color: rgba(245,158,11,0.3);
+  }
+
+  .capital-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .capital-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--transition);
+  }
+
+  .capital-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+
+  .capital-kpi-card.card-equity::before   { background: var(--accent); }
+  .capital-kpi-card.card-liquidity::before { background: var(--teal); }
+  .capital-kpi-card.card-independence::before { background: var(--purple); }
+
+  .capital-kpi-card:hover { border-color: var(--border-light); }
+  .capital-kpi-card:hover::before { opacity: 1; }
+
+  .capital-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .capital-kpi-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .capital-kpi-value.accent  { color: var(--accent); }
+  .capital-kpi-value.teal    { color: var(--teal); }
+  .capital-kpi-value.purple  { color: var(--purple); }
+  .capital-kpi-value.warning { color: var(--yellow); }
+  .capital-kpi-value.ok      { color: var(--green); }
+
+  .capital-kpi-norm {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .capital-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .capital-chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 280px;
+  }
+
+  .capital-chart-card.capital-chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .capital-chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .capital-chart-area {
+    flex: 1;
+    min-height: 200px;
+    position: relative;
+  }
+
+  .capital-no-data {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); font-size: 12px;
+  }
+
+  .capital-loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 40px; color: var(--text-muted); font-size: 13px;
+  }
+
+  .capital-spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: capitalSpin 0.8s linear infinite;
+  }
+
+  @keyframes capitalSpin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    .capital-kpis { grid-template-columns: 1fr 1fr 1fr; }
+    .capital-charts-grid { grid-template-columns: 1fr; }
+    .capital-chart-card.capital-chart-wide { grid-column: 1; }
+  }
+
+  @media (max-width: 480px) {
+    .capital-kpis { grid-template-columns: 1fr; }
+    .capital-kpi-value { font-size: 22px; }
+  }
+</style>
+
+<div class="capital-page" id="capital-page">
+
+  <div class="capital-filters">
+    <div class="capital-filters-row">
+      <div class="capital-filter-group">
+        <label class="capital-filter-label" for="capital-date-to">По дату</label>
+        <input type="date" class="capital-input" id="capital-date-to">
+      </div>
+      <button class="capital-btn-apply" id="capital-btn-apply" onclick="capitalApplyFilters()">Применить</button>
+    </div>
+  </div>
+
+  <div class="capital-badge-row" id="capital-badge-row">
+    <span class="capital-badge capital-badge-info" id="capital-snapshot-badge">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Загрузка...
+    </span>
+  </div>
+
+  <div class="capital-kpis" id="capital-kpis">
+    <div class="capital-kpi-card card-equity">
+      <div class="capital-kpi-label">Собственный капитал</div>
+      <div class="capital-kpi-value accent" id="capital-kpi-equity">—</div>
+      <div class="capital-kpi-norm">На дату среза</div>
+    </div>
+    <div class="capital-kpi-card card-liquidity">
+      <div class="capital-kpi-label">Текущая ликвидность</div>
+      <div class="capital-kpi-value" id="capital-kpi-liquidity">—</div>
+      <div class="capital-kpi-norm">Норма: 1,5 – 2,0</div>
+    </div>
+    <div class="capital-kpi-card card-independence">
+      <div class="capital-kpi-label">Фин. независимость</div>
+      <div class="capital-kpi-value purple" id="capital-kpi-independence">—</div>
+      <div class="capital-kpi-norm">Собств. капитал / Активы</div>
+    </div>
+  </div>
+
+  <div class="capital-charts-grid" id="capital-charts-grid">
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Структура активов</div>
+      <div class="capital-chart-area" id="capital-chart-assets-pie"></div>
+    </div>
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Структура пассивов</div>
+      <div class="capital-chart-area" id="capital-chart-liabilities-pie"></div>
+    </div>
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Динамика дебиторской задолженности</div>
+      <div class="capital-chart-area" id="capital-chart-ar"></div>
+    </div>
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Динамика кредиторской задолженности</div>
+      <div class="capital-chart-area" id="capital-chart-ap"></div>
+    </div>
+
+    <div class="capital-chart-card capital-chart-wide">
+      <div class="capital-chart-title">Структура капитала: заёмный vs собственный (100%)</div>
+      <div class="capital-chart-area" id="capital-chart-capital-structure"></div>
+    </div>
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Динамика ликвидности</div>
+      <div class="capital-chart-area" id="capital-chart-liquidity"></div>
+    </div>
+
+    <div class="capital-chart-card">
+      <div class="capital-chart-title">Динамика фин. независимости</div>
+      <div class="capital-chart-area" id="capital-chart-independence"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var capitalIsLoading    = false;
+  var capitalQueuedReload = false;
+  var _capitalCharts = {};
+
+  function capitalInit() {
+    var now = new Date();
+    document.getElementById('capital-date-to').value = now.toISOString().slice(0, 10);
+    capitalLoadData();
+  }
+
+  function capitalBuildParams() {
+    return {
+      dateTo: document.getElementById('capital-date-to').value || null
+    };
+  }
+
+  function capitalLoadData() {
+    if (capitalIsLoading) {
+      capitalQueuedReload = true;
+      return;
+    }
+    capitalIsLoading = true;
+    capitalQueuedReload = false;
+
+    var btn = document.getElementById('capital-btn-apply');
+    if (btn) btn.disabled = true;
+
+    capitalShowBadge('Загрузка...', 'info');
+
+    var params = capitalBuildParams();
+
+    google.script.run
+      .withSuccessHandler(function(resp) {
+        capitalIsLoading = false;
+        if (btn) btn.disabled = false;
+
+        if (!resp || resp.status === 'error') {
+          capitalShowError(resp && resp.error ? resp.error : 'Неизвестная ошибка');
+          if (capitalQueuedReload) { capitalQueuedReload = false; capitalLoadData(); }
+          return;
+        }
+
+        var data = resp.data || {};
+        capitalRenderBadge(data.meta || {});
+        capitalRenderKpis(data.kpis   || {});
+
+        onChartsReady(function() {
+          capitalRenderCharts(data.charts || {});
+        });
+
+        if (capitalQueuedReload) { capitalQueuedReload = false; capitalLoadData(); }
+      })
+      .withFailureHandler(function(err) {
+        capitalIsLoading = false;
+        if (btn) btn.disabled = false;
+        capitalShowError('Ошибка подключения: ' + (err && err.message ? err.message : String(err)));
+        if (capitalQueuedReload) { capitalQueuedReload = false; capitalLoadData(); }
+      })
+      .capitalApiCapital(params);
+  }
+
+  function capitalApplyFilters() { capitalLoadData(); }
+
+  function capitalRenderBadge(meta) {
+    var snap = meta.snapshotDate || null;
+    var warn = meta.warning || null;
+    var row  = document.getElementById('capital-badge-row');
+    if (!row) return;
+
+    var html = '';
+    if (snap) {
+      html += '<span class="capital-badge capital-badge-info">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+        'Баланс на дату среза: ' + capitalEscHtml(snap) +
+        '</span>';
+    } else {
+      html += '<span class="capital-badge capital-badge-warn">Срез не найден для выбранного периода</span>';
+    }
+    if (warn) {
+      html += '<span class="capital-badge capital-badge-warn">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        capitalEscHtml(warn) + '</span>';
+    }
+    row.innerHTML = html;
+  }
+
+  function capitalShowBadge(text, type) {
+    var badge = document.getElementById('capital-snapshot-badge');
+    if (badge) badge.textContent = text;
+  }
+
+  function capitalRenderKpis(kpis) {
+    var equity        = Number(kpis.equity        || 0);
+    var liquidity     = Number(kpis.liquidity     || 0);
+    var independence  = Number(kpis.finIndependence|| 0);
+
+    var eqEl = document.getElementById('capital-kpi-equity');
+    if (eqEl) { eqEl.textContent = formatCurrencyFull(equity); eqEl.className = 'capital-kpi-value accent'; }
+
+    var liqEl = document.getElementById('capital-kpi-liquidity');
+    if (liqEl) {
+      liqEl.textContent = liquidity.toFixed(2);
+      var liqCls = 'capital-kpi-value ';
+      if (liquidity >= 1.5 && liquidity <= 2.0) liqCls += 'ok';
+      else if (liquidity >= 1.0) liqCls += 'warning';
+      else liqCls += 'teal';
+      liqEl.className = liqCls;
+    }
+
+    var indEl = document.getElementById('capital-kpi-independence');
+    if (indEl) {
+      indEl.textContent = independence.toFixed(2);
+      indEl.className = 'capital-kpi-value purple';
+    }
+  }
+
+  function capitalRenderCharts(charts) {
+    capitalDrawPie('capital-chart-assets-pie',       charts.assetsStructure      || [], 'Активы');
+    capitalDrawPie('capital-chart-liabilities-pie',  charts.liabilitiesStructure || [], 'Пассивы');
+    capitalDrawLine('capital-chart-ar',              charts.arDynamics           || [], 'ДЗ клиенты', '#00d9ff');
+    capitalDrawLine('capital-chart-ap',              charts.apDynamics           || [], 'КЗ поставщики', '#ef4444');
+    capitalDrawCapitalStructure(charts.capitalStructure || []);
+    capitalDrawLiquidityLine(charts.liquidityChart       || []);
+    capitalDrawIndependenceLine(charts.independenceChart || []);
+  }
+
+  function capitalDrawPie(elId, rows, title) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="capital-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Статья');
+    data.addColumn('number', 'Сумма');
+    rows.forEach(function(r) {
+      data.addRow([String(r.name || ''), Math.abs(Number(r.value || 0))]);
+    });
+
+    var opts = capitalChartOptions({
+      pieHole: 0.4,
+      colors: ['#00d9ff','#14b8a6','#a855f7','#f59e0b','#3b82f6','#ec4899','#22c55e','#ef4444'],
+      legend: { position: 'labeled', labeledValueText: 'percent', textStyle: { color: '#94a3b8', fontSize: 10 } },
+      pieSliceText: 'none',
+      chartArea: { left: 5, right: 5, top: 5, bottom: 5, width: '100%', height: '92%' }
+    });
+
+    var chart = new google.visualization.PieChart(el);
+    chart.draw(data, opts);
+    _capitalCharts[elId] = { chart, data, opts, el };
+  }
+
+  function capitalDrawLine(elId, rows, seriesLabel, color) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="capital-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', seriesLabel + ', млн ₽');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.value || 0) / 1e6]);
+    });
+
+    var opts = capitalChartOptions({
+      colors: [color],
+      series: { 0: { lineWidth: 2, pointSize: 6 } },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      curveType: 'function',
+      legend: { position: 'none' }
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _capitalCharts[elId] = { chart, data, opts, el };
+  }
+
+  function capitalDrawCapitalStructure(rows) {
+    var el = document.getElementById('capital-chart-capital-structure');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="capital-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', 'Заёмный капитал');
+    data.addColumn('number', 'Собственный капитал');
+    rows.forEach(function(r) {
+      data.addRow([
+        String(r.date || r.label || ''),
+        Number(r.liabilities || 0) / 1e6,
+        Number(r.equity      || 0) / 1e6
+      ]);
+    });
+
+    var opts = capitalChartOptions({
+      isStacked: 'percent',
+      colors: ['#ef4444', '#00d9ff'],
+      bar: { groupWidth: '55%' },
+      vAxis: { format: '#%', textStyle: { color: '#94a3b8', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ColumnChart(el);
+    chart.draw(data, opts);
+    _capitalCharts['capitalStructure'] = { chart, data, opts, el };
+  }
+
+  function capitalDrawLiquidityLine(rows) {
+    var el = document.getElementById('capital-chart-liquidity');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="capital-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', 'Ликвидность');
+    data.addColumn('number', 'Норма 1.5');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.value || 0), 1.5]);
+    });
+
+    var opts = capitalChartOptions({
+      colors: ['#14b8a6', '#f59e0b'],
+      series: {
+        0: { lineWidth: 2, pointSize: 6 },
+        1: { lineWidth: 1, lineDashStyle: [5, 4], pointSize: 0, color: '#f59e0b' }
+      },
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 }, minValue: 0 },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      legend: { position: 'top', textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _capitalCharts['liquidity'] = { chart, data, opts, el };
+  }
+
+  function capitalDrawIndependenceLine(rows) {
+    var el = document.getElementById('capital-chart-independence');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="capital-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', 'Фин. независимость');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.value || 0)]);
+    });
+
+    var opts = capitalChartOptions({
+      colors: ['#a855f7'],
+      series: { 0: { lineWidth: 2, pointSize: 6 } },
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 }, minValue: 0, maxValue: 1 },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      legend: { position: 'none' }
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _capitalCharts['independence'] = { chart, data, opts, el };
+  }
+
+  function capitalChartOptions(extra) {
+    var base = {
+      backgroundColor: 'transparent',
+      fontName: 'Manrope',
+      fontSize: 12,
+      legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, position: 'top' },
+      tooltip: { textStyle: { color: '#0f172a', fontSize: 12 }, showColorCode: true },
+      chartArea: { left: 60, right: 20, top: 36, bottom: 40, width: '100%', height: '100%' },
+      gridlines: { color: 'rgba(51,65,85,0.6)' },
+      minorGridlines: { color: 'transparent' }
+    };
+    return Object.assign({}, base, extra);
+  }
+
+  function capitalShowError(msg) {
+    capitalShowBadge('Ошибка загрузки', 'warn');
+    ['capital-kpi-equity','capital-kpi-liquidity','capital-kpi-independence'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.className = 'capital-kpi-value'; }
+    });
+    var grid = document.getElementById('capital-charts-grid');
+    if (grid) {
+      grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:#fca5a5;font-size:13px;">Ошибка: ' + capitalEscHtml(msg) + '</div>';
+    }
+    console.error('[capital] API error:', msg);
+  }
+
+  function capitalEscHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.capitalLoadData     = capitalLoadData;
+  window.capitalApplyFilters = capitalApplyFilters;
+
+  capitalInit();
+
+})();
+</script>

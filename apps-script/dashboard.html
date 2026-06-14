@@ -1,0 +1,856 @@
+<!-- dashboard.html — FRAGMENT (no <!DOCTYPE>, no <html>/<head>/<body>) -->
+<style>
+  /* ─── dashboard namespace ─── */
+
+  .dashboard-page { display: flex; flex-direction: column; gap: 20px; }
+
+  .dashboard-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .dashboard-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .dashboard-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 0 0 180px;
+    min-width: 140px;
+  }
+
+  .dashboard-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .dashboard-input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 13px;
+    padding: 8px 10px;
+    height: 38px;
+    width: 100%;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .dashboard-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,217,255,0.15);
+  }
+
+  .dashboard-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+  }
+
+  .dashboard-btn-apply {
+    height: 38px;
+    padding: 0 20px;
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: opacity var(--transition), box-shadow var(--transition);
+    box-shadow: var(--accent-glow);
+    align-self: flex-end;
+    white-space: nowrap;
+  }
+
+  .dashboard-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
+  .dashboard-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  .dashboard-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  .dashboard-badge-info {
+    background: rgba(0,217,255,0.1);
+    color: var(--accent);
+    border-color: rgba(0,217,255,0.3);
+  }
+
+  .dashboard-badge-period {
+    background: rgba(20,184,166,0.1);
+    color: var(--teal);
+    border-color: rgba(20,184,166,0.3);
+  }
+
+  .dashboard-badge-warn {
+    background: rgba(245,158,11,0.1);
+    color: var(--yellow);
+    border-color: rgba(245,158,11,0.3);
+  }
+
+  .dashboard-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+
+  .dashboard-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--transition);
+  }
+
+  .dashboard-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+
+  .dashboard-kpi-card:hover { border-color: var(--border-light); }
+  .dashboard-kpi-card:hover::before { opacity: 1; }
+
+  .dashboard-kpi-card.kpi-money::before   { background: var(--accent); }
+  .dashboard-kpi-card.kpi-profit::before  { background: var(--teal); }
+  .dashboard-kpi-card.kpi-capital::before { background: var(--purple); }
+
+  .dashboard-kpi-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+
+  .dashboard-kpi-value {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  .dashboard-kpi-value.accent   { color: var(--accent); }
+  .dashboard-kpi-value.teal     { color: var(--teal); }
+  .dashboard-kpi-value.purple   { color: var(--purple); }
+  .dashboard-kpi-value.positive { color: var(--green); }
+  .dashboard-kpi-value.negative { color: var(--red); }
+  .dashboard-kpi-value.warning  { color: var(--yellow); }
+
+  .dashboard-kpi-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .dashboard-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .dashboard-chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 280px;
+  }
+
+  .dashboard-chart-card.dashboard-chart-wide {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .dashboard-chart-area {
+    flex: 1;
+    min-height: 200px;
+    position: relative;
+  }
+
+  .dashboard-no-data {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); font-size: 12px;
+  }
+
+  .dashboard-loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 60px; color: var(--text-muted); font-size: 13px;
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-spinner {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: dashboardSpin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes dashboardSpin { to { transform: rotate(360deg); } }
+
+  .dashboard-section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 -4px;
+  }
+
+  .dashboard-section-divider-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .dashboard-section-divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-kpis { grid-template-columns: repeat(2, 1fr); }
+    .dashboard-charts-grid { grid-template-columns: 1fr; }
+    .dashboard-chart-card.dashboard-chart-wide { grid-column: 1; }
+  }
+
+  @media (max-width: 480px) {
+    .dashboard-kpis { grid-template-columns: 1fr 1fr; }
+    .dashboard-kpi-value { font-size: 15px; }
+  }
+</style>
+
+<div class="dashboard-page" id="dashboard-page">
+
+  <div class="dashboard-filters">
+    <div class="dashboard-filters-row">
+      <div class="dashboard-filter-group">
+        <label class="dashboard-filter-label" for="dashboard-date-to">Дата среза (Капитал)</label>
+        <input type="date" class="dashboard-input" id="dashboard-date-to">
+      </div>
+      <button class="dashboard-btn-apply" id="dashboard-btn-apply" onclick="dashboardApplyFilters()">Применить</button>
+    </div>
+  </div>
+
+  <div class="dashboard-badges" id="dashboard-badges">
+    <span class="dashboard-badge dashboard-badge-info" id="dashboard-badge-snapshot">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Загрузка...
+    </span>
+  </div>
+
+  <div class="dashboard-section-divider">
+    <div class="dashboard-section-divider-label">Деньги</div>
+    <div class="dashboard-section-divider-line"></div>
+  </div>
+
+  <div class="dashboard-kpis" id="dashboard-kpis-money">
+    <div class="dashboard-kpi-card kpi-money">
+      <div class="dashboard-kpi-label">ЧДП за период</div>
+      <div class="dashboard-kpi-value" id="db-kpi-ndp">—</div>
+      <div class="dashboard-kpi-sub">Чистый ден. поток</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-money">
+      <div class="dashboard-kpi-label">Cash Buffer</div>
+      <div class="dashboard-kpi-value accent" id="db-kpi-buffer">—</div>
+      <div class="dashboard-kpi-sub">Дней покрытия</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-profit">
+      <div class="dashboard-kpi-label">ЧП</div>
+      <div class="dashboard-kpi-value" id="db-kpi-net">—</div>
+      <div class="dashboard-kpi-sub">Разделы 1–7</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-profit">
+      <div class="dashboard-kpi-label">Рентабельность</div>
+      <div class="dashboard-kpi-value teal" id="db-kpi-margin">—</div>
+      <div class="dashboard-kpi-sub">ЧП / Выручка</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-profit">
+      <div class="dashboard-kpi-label">MR%</div>
+      <div class="dashboard-kpi-value" id="db-kpi-mr">—</div>
+      <div class="dashboard-kpi-sub">Валовая маржа</div>
+    </div>
+  </div>
+
+  <div class="dashboard-section-divider">
+    <div class="dashboard-section-divider-label">Капитал (срез)</div>
+    <div class="dashboard-section-divider-line"></div>
+  </div>
+
+  <div class="dashboard-kpis" id="dashboard-kpis-capital">
+    <div class="dashboard-kpi-card kpi-capital">
+      <div class="dashboard-kpi-label">Собств. капитал</div>
+      <div class="dashboard-kpi-value purple" id="db-kpi-equity">—</div>
+      <div class="dashboard-kpi-sub">На дату среза</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-capital">
+      <div class="dashboard-kpi-label">Ликвидность</div>
+      <div class="dashboard-kpi-value" id="db-kpi-liquidity">—</div>
+      <div class="dashboard-kpi-sub">Норма 1,5 – 2,0</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-capital">
+      <div class="dashboard-kpi-label">ROE</div>
+      <div class="dashboard-kpi-value accent" id="db-kpi-roe">—</div>
+      <div class="dashboard-kpi-sub">ЧП / Собств. кап.</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-capital">
+      <div class="dashboard-kpi-label">Обор. ДЗ</div>
+      <div class="dashboard-kpi-value" id="db-kpi-ar-turn">—</div>
+      <div class="dashboard-kpi-sub" id="db-kpi-ar-days">Клиенты</div>
+    </div>
+    <div class="dashboard-kpi-card kpi-capital">
+      <div class="dashboard-kpi-label">Обор. КЗ</div>
+      <div class="dashboard-kpi-value" id="db-kpi-ap-turn">—</div>
+      <div class="dashboard-kpi-sub" id="db-kpi-ap-days">Поставщики</div>
+    </div>
+  </div>
+
+  <div class="dashboard-section-divider">
+    <div class="dashboard-section-divider-label">Графики</div>
+    <div class="dashboard-section-divider-line"></div>
+  </div>
+
+  <div class="dashboard-charts-grid" id="dashboard-charts-grid">
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">ЧДП по месяцам</div>
+      <div class="dashboard-chart-area" id="db-chart-ndp-monthly"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">ЧДП по направлениям</div>
+      <div class="dashboard-chart-area" id="db-chart-ndp-dir"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">Выручка + MR% по месяцам</div>
+      <div class="dashboard-chart-area" id="db-chart-revenue-mr"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">Валовая прибыль по направлениям</div>
+      <div class="dashboard-chart-area" id="db-chart-gross-dir"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">ЧП + Рентабельность</div>
+      <div class="dashboard-chart-area" id="db-chart-net-margin"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">Динамика ДЗ (клиенты)</div>
+      <div class="dashboard-chart-area" id="db-chart-ar"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">Динамика КЗ (поставщики)</div>
+      <div class="dashboard-chart-area" id="db-chart-ap"></div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <div class="dashboard-chart-title">Заёмный vs Собственный капитал</div>
+      <div class="dashboard-chart-area" id="db-chart-capital-structure"></div>
+    </div>
+
+    <div class="dashboard-chart-card dashboard-chart-wide">
+      <div class="dashboard-chart-title">Динамика фин. независимости</div>
+      <div class="dashboard-chart-area" id="db-chart-independence"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var dashboardIsLoading    = false;
+  var dashboardQueuedReload = false;
+  var _dbCharts = {};
+
+  function dashboardInit() {
+    var now = new Date();
+    document.getElementById('dashboard-date-to').value = now.toISOString().slice(0, 10);
+    dashboardLoadData();
+  }
+
+  function dashboardBuildParams() {
+    return {
+      dateTo: document.getElementById('dashboard-date-to').value || null
+    };
+  }
+
+  function dashboardLoadData() {
+    if (dashboardIsLoading) {
+      dashboardQueuedReload = true;
+      return;
+    }
+    dashboardIsLoading = true;
+    dashboardQueuedReload = false;
+
+    var btn = document.getElementById('dashboard-btn-apply');
+    if (btn) btn.disabled = true;
+
+    dashboardShowBadgesLoading();
+
+    var params = dashboardBuildParams();
+
+    google.script.run
+      .withSuccessHandler(function(resp) {
+        dashboardIsLoading = false;
+        if (btn) btn.disabled = false;
+
+        if (!resp || resp.status === 'error') {
+          dashboardShowError(resp && resp.error ? resp.error : 'Неизвестная ошибка');
+          if (dashboardQueuedReload) { dashboardQueuedReload = false; dashboardLoadData(); }
+          return;
+        }
+
+        var data = resp.data || {};
+        dashboardRenderBadges(data.meta    || {});
+        dashboardRenderKpis(data.kpis      || {});
+
+        onChartsReady(function() {
+          dashboardRenderCharts(data.charts || {});
+        });
+
+        if (dashboardQueuedReload) { dashboardQueuedReload = false; dashboardLoadData(); }
+      })
+      .withFailureHandler(function(err) {
+        dashboardIsLoading = false;
+        if (btn) btn.disabled = false;
+        dashboardShowError('Ошибка подключения: ' + (err && err.message ? err.message : String(err)));
+        if (dashboardQueuedReload) { dashboardQueuedReload = false; dashboardLoadData(); }
+      })
+      .dashboardApiDashboard(params);
+  }
+
+  function dashboardApplyFilters() { dashboardLoadData(); }
+
+  function dashboardShowBadgesLoading() {
+    var row = document.getElementById('dashboard-badges');
+    if (row) row.innerHTML = '<span class="dashboard-badge dashboard-badge-info">Загрузка...</span>';
+  }
+
+  function dashboardRenderBadges(meta) {
+    var row = document.getElementById('dashboard-badges');
+    if (!row) return;
+
+    var snap   = meta.snapshotDate || null;
+    var period = meta.period       || null;
+    var warn   = meta.warning      || null;
+
+    var html = '';
+
+    if (snap) {
+      html += '<span class="dashboard-badge dashboard-badge-info">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+        'Капитал на дату среза: ' + dbEsc(snap) + '</span>';
+    }
+
+    if (period) {
+      html += '<span class="dashboard-badge dashboard-badge-period">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+        'Период: ' + dbEsc(period) + '</span>';
+    }
+
+    if (warn) {
+      html += '<span class="dashboard-badge dashboard-badge-warn">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' +
+        '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        dbEsc(warn) + '</span>';
+    }
+
+    if (!html) html = '<span class="dashboard-badge dashboard-badge-info">Нет данных</span>';
+    row.innerHTML = html;
+  }
+
+  function dashboardRenderKpis(kpis) {
+    var ndp    = Number(kpis.netCashFlow   || 0);
+    var buf    = Number(kpis.cashBuffer    || 0);
+    var net    = Number(kpis.netProfit     || 0);
+    var margin = Number(kpis.netProfitMargin || 0);
+    var mr     = Number(kpis.marginPct     || 0);
+    var equity = Number(kpis.equity        || 0);
+    var liq    = Number(kpis.liquidity     || 0);
+    var roe    = Number(kpis.roe           || 0);
+    var arTurn = Number(kpis.arTurns       || 0);
+    var arDays = Number(kpis.arDays        || 0);
+    var apTurn = Number(kpis.apTurns       || 0);
+    var apDays = Number(kpis.apDays        || 0);
+
+    dbSetKpi('db-kpi-ndp',    formatCurrencyFull(ndp),   ndp >= 0 ? 'positive' : 'negative');
+    dbSetKpi('db-kpi-buffer', Math.round(buf) + ' дн.',  'accent');
+    dbSetKpi('db-kpi-net',    formatCurrencyFull(net),   net >= 0 ? 'positive' : 'negative');
+    dbSetKpi('db-kpi-margin', formatPercent(margin),     margin >= 0 ? 'teal' : 'negative');
+    dbSetKpi('db-kpi-mr',     formatPercent(mr),         mr >= 0 ? '' : 'negative');
+
+    dbSetKpi('db-kpi-equity',   formatCurrencyFull(equity), 'purple');
+
+    var liqEl = document.getElementById('db-kpi-liquidity');
+    if (liqEl) {
+      liqEl.textContent = liq.toFixed(2);
+      liqEl.className = 'dashboard-kpi-value ' + (liq >= 1.5 && liq <= 2.0 ? 'positive' : liq >= 1.0 ? 'warning' : 'negative');
+    }
+
+    dbSetKpi('db-kpi-roe', formatPercent(roe), roe >= 0 ? 'accent' : 'negative');
+
+    var arTurnEl = document.getElementById('db-kpi-ar-turn');
+    if (arTurnEl) arTurnEl.textContent = arTurn.toFixed(1) + 'x';
+    var arDaysEl = document.getElementById('db-kpi-ar-days');
+    if (arDaysEl) arDaysEl.textContent = Math.round(arDays) + ' дн.';
+
+    var apTurnEl = document.getElementById('db-kpi-ap-turn');
+    if (apTurnEl) apTurnEl.textContent = apTurn.toFixed(1) + 'x';
+    var apDaysEl = document.getElementById('db-kpi-ap-days');
+    if (apDaysEl) apDaysEl.textContent = Math.round(apDays) + ' дн.';
+  }
+
+  function dbSetKpi(id, val, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.className = 'dashboard-kpi-value' + (cls ? ' ' + cls : '');
+  }
+
+  function dashboardRenderCharts(charts) {
+    dbDrawMonthlyBar('db-chart-ndp-monthly',  charts.netCashByMonth     || [], 'ЧДП',   '#00d9ff');
+    dbDrawDirectionsBar('db-chart-ndp-dir',   charts.netCashByDirection || [], 'ЧДП');
+    dbDrawRevenueMR('db-chart-revenue-mr',    charts.revenueMR          || []);
+    dbDrawGrossDir('db-chart-gross-dir',      charts.grossProfitByDir   || {});
+    dbDrawNetMargin('db-chart-net-margin',    charts.netProfitMargin    || []);
+    dbDrawLine('db-chart-ar',                 charts.arDynamics         || [], 'ДЗ клиенты',    '#00d9ff');
+    dbDrawLine('db-chart-ap',                 charts.apDynamics         || [], 'КЗ поставщики', '#ef4444');
+    dbDrawCapitalStructure('db-chart-capital-structure', charts.capitalStructure || []);
+    dbDrawIndependence('db-chart-independence',          charts.finIndependence  || []);
+  }
+
+  function dbDrawMonthlyBar(elId, rows, label, color) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', label + ', млн ₽');
+    rows.forEach(function(r) {
+      data.addRow([String(r.month || ''), Number(r.net || r.value || 0) / 1e6]);
+    });
+
+    var opts = dbChartOptions({
+      colors: [color],
+      bar: { groupWidth: '60%' },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      legend: { position: 'none' }
+    });
+
+    var chart = new google.visualization.ColumnChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawDirectionsBar(elId, rows, label) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Направление');
+    data.addColumn('number', label + ', млн ₽');
+    rows.forEach(function(r) {
+      data.addRow([String(r.direction || r.name || ''), Number(r.net || r.value || 0) / 1e6]);
+    });
+
+    var opts = dbChartOptions({
+      colors: ['#14b8a6'],
+      bar: { groupWidth: '55%' },
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      hAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      legend: { position: 'none' },
+      orientation: 'horizontal'
+    });
+
+    var chart = new google.visualization.BarChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawRevenueMR(elId, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'Выручка, млн ₽');
+    data.addColumn('number', 'MR%');
+    rows.forEach(function(r) {
+      data.addRow([String(r.month || ''), Number(r.revenue || 0) / 1e6, Number(r.marginPct || 0)]);
+    });
+
+    var opts = dbChartOptions({
+      seriesType: 'bars',
+      series: {
+        0: { color: '#14b8a6', targetAxisIndex: 0 },
+        1: { type: 'line', color: '#a855f7', lineWidth: 2, pointSize: 4, targetAxisIndex: 1 }
+      },
+      vAxes: {
+        0: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+        1: { title: '%',     textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } }
+      },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ComboChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawGrossDir(elId, byDir) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+
+    var months = Object.keys(byDir || {}).sort();
+    if (!months.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var dirs = [];
+    months.forEach(function(m) {
+      Object.keys(byDir[m] || {}).forEach(function(d) { if (dirs.indexOf(d) === -1) dirs.push(d); });
+    });
+
+    if (!dirs.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    dirs.forEach(function(d) { data.addColumn('number', d); });
+    months.forEach(function(m) {
+      var row = [m];
+      dirs.forEach(function(d) { row.push(Number((byDir[m] || {})[d] || 0) / 1e6); });
+      data.addRow(row);
+    });
+
+    var colors = ['#00d9ff','#14b8a6','#a855f7','#f59e0b','#ef4444','#22c55e','#3b82f6'];
+    var opts = dbChartOptions({
+      isStacked: true,
+      colors: colors.slice(0, dirs.length),
+      bar: { groupWidth: '65%' },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ColumnChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawNetMargin(elId, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'ЧП, млн ₽');
+    data.addColumn('number', 'Рент-ть%');
+    rows.forEach(function(r) {
+      data.addRow([String(r.month || ''), Number(r.netProfit || 0) / 1e6, Number(r.marginPct || 0)]);
+    });
+
+    var opts = dbChartOptions({
+      seriesType: 'bars',
+      series: {
+        0: { color: '#00d9ff', targetAxisIndex: 0 },
+        1: { type: 'line', color: '#f59e0b', lineWidth: 2, pointSize: 4, targetAxisIndex: 1 }
+      },
+      vAxes: {
+        0: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+        1: { title: '%',     textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } }
+      },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ComboChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawLine(elId, rows, label, color) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', label + ', млн ₽');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.value || 0) / 1e6]);
+    });
+
+    var opts = dbChartOptions({
+      colors: [color],
+      series: { 0: { lineWidth: 2, pointSize: 5 } },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      legend: { position: 'none' },
+      curveType: 'function'
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawCapitalStructure(elId, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', 'Заёмный');
+    data.addColumn('number', 'Собственный');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.liabilities || 0) / 1e6, Number(r.equity || 0) / 1e6]);
+    });
+
+    var opts = dbChartOptions({
+      isStacked: 'percent',
+      colors: ['#ef4444', '#00d9ff'],
+      bar: { groupWidth: '55%' },
+      vAxis: { format: '#%', textStyle: { color: '#94a3b8', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ColumnChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbDrawIndependence(elId, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="dashboard-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Дата');
+    data.addColumn('number', 'Фин. независимость');
+    rows.forEach(function(r) {
+      data.addRow([String(r.date || r.label || ''), Number(r.value || r.ratio || 0)]);
+    });
+
+    var opts = dbChartOptions({
+      colors: ['#a855f7'],
+      series: { 0: { lineWidth: 2, pointSize: 5 } },
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 }, minValue: 0, maxValue: 1 },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      legend: { position: 'none' },
+      curveType: 'function'
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _dbCharts[elId] = { chart, data, opts, el };
+  }
+
+  function dbChartOptions(extra) {
+    var base = {
+      backgroundColor: 'transparent',
+      fontName: 'Manrope',
+      fontSize: 12,
+      legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, position: 'top' },
+      tooltip: { textStyle: { color: '#0f172a', fontSize: 12 }, showColorCode: true },
+      chartArea: { left: 60, right: 50, top: 36, bottom: 40, width: '100%', height: '100%' },
+      gridlines: { color: 'rgba(51,65,85,0.6)' },
+      minorGridlines: { color: 'transparent' }
+    };
+    return Object.assign({}, base, extra);
+  }
+
+  function dashboardShowError(msg) {
+    var row = document.getElementById('dashboard-badges');
+    if (row) {
+      row.innerHTML = '<span class="dashboard-badge dashboard-badge-warn">Ошибка загрузки</span>';
+    }
+    var kpiIds = ['db-kpi-ndp','db-kpi-buffer','db-kpi-net','db-kpi-margin','db-kpi-mr',
+                  'db-kpi-equity','db-kpi-liquidity','db-kpi-roe','db-kpi-ar-turn','db-kpi-ap-turn'];
+    kpiIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.className = 'dashboard-kpi-value'; }
+    });
+    var grid = document.getElementById('dashboard-charts-grid');
+    if (grid) {
+      grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:#fca5a5;font-size:13px;">Ошибка: ' + dbEsc(msg) + '</div>';
+    }
+    console.error('[dashboard] API error:', msg);
+  }
+
+  function dbEsc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.dashboardLoadData     = dashboardLoadData;
+  window.dashboardApplyFilters = dashboardApplyFilters;
+
+  dashboardInit();
+
+})();
+</script>

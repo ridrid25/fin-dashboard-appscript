@@ -1,0 +1,1035 @@
+<!-- money.html — FRAGMENT (no <!DOCTYPE>, no <html>/<head>/<body>) -->
+<style>
+  /* ─── cash namespace: all selectors scoped to .cash-* or #cash-* ─── */
+
+  .cash-page { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Filters */
+  .cash-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .cash-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .cash-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 130px;
+    flex: 1;
+  }
+
+  .cash-filter-group.cash-filter-date { min-width: 140px; max-width: 180px; flex: 0 0 160px; }
+
+  .cash-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .cash-input, .cash-select {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 13px;
+    padding: 8px 10px;
+    height: 38px;
+    width: 100%;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .cash-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .cash-input:focus, .cash-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
+  }
+
+  .cash-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+  }
+
+  .cash-filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .cash-btn-apply {
+    height: 38px;
+    padding: 0 20px;
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: opacity var(--transition), box-shadow var(--transition);
+    white-space: nowrap;
+    box-shadow: var(--accent-glow);
+  }
+
+  .cash-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
+  .cash-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  /* KPI Cards */
+  .cash-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .cash-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cash-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+
+  .cash-kpi-card:hover { border-color: var(--border-light); }
+  .cash-kpi-card:hover::before { opacity: 1; }
+
+  .cash-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .cash-kpi-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .cash-kpi-value.positive { color: var(--green); }
+  .cash-kpi-value.negative { color: var(--red); }
+  .cash-kpi-value.accent   { color: var(--accent); }
+
+  .cash-kpi-sub {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .cash-kpi-icon {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.65;
+  }
+
+  /* Charts Grid */
+  .cash-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .cash-chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 300px;
+  }
+
+  .cash-chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+  }
+
+  .cash-chart-area {
+    flex: 1;
+    min-height: 220px;
+    position: relative;
+  }
+
+  /* Counterparty section */
+  .cash-counterparty-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cash-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .cash-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .cash-toggle-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .cash-toggle-btn {
+    padding: 7px 16px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+    white-space: nowrap;
+  }
+
+  .cash-toggle-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .cash-toggle-btn:hover:not(.active) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* ODDS Table */
+  .cash-table-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-x: auto;
+  }
+
+  .cash-table-wrap { overflow-x: auto; }
+
+  .cash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .cash-table th {
+    padding: 9px 12px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: rgba(15,23,42,0.5);
+  }
+
+  .cash-table th:first-child { text-align: left; min-width: 220px; }
+
+  .cash-table td {
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid rgba(51,65,85,0.5);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .cash-table td:first-child {
+    text-align: left;
+    color: var(--text-primary);
+  }
+
+  .cash-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .cash-table tr.cash-row-section td {
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(0,217,255,0.04);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cash-table tr.cash-row-section td:first-child {
+    color: var(--accent);
+  }
+
+  .cash-table tr.cash-row-type td {
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.02);
+    padding-left: 24px;
+  }
+
+  .cash-table tr.cash-row-item td {
+    color: var(--text-secondary);
+    padding-left: 40px;
+  }
+
+  .cash-table tr.cash-row-item { display: none; }
+  .cash-table tr.cash-row-item.expanded { display: table-row; }
+
+  .cash-expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 6px 0 0;
+    font-size: 11px;
+    vertical-align: middle;
+    transition: color var(--transition), transform var(--transition);
+    display: inline-block;
+  }
+
+  .cash-expand-btn.open { color: var(--accent); transform: rotate(90deg); }
+
+  .cash-value-pos { color: var(--green); }
+  .cash-value-neg { color: var(--red); }
+
+  /* Loading / empty states */
+  .cash-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .cash-spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: cashSpin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes cashSpin { to { transform: rotate(360deg); } }
+
+  .cash-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .cash-no-data-chart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .cash-kpis { grid-template-columns: repeat(2, 1fr); }
+    .cash-charts-grid { grid-template-columns: 1fr; }
+    .cash-filter-group { flex: 1 1 140px; }
+    .cash-filter-group.cash-filter-date { flex: 1 1 140px; max-width: none; }
+  }
+
+  @media (max-width: 480px) {
+    .cash-kpis { grid-template-columns: 1fr 1fr; }
+    .cash-kpi-value { font-size: 17px; }
+  }
+</style>
+
+<div class="cash-page" id="cash-page">
+
+  <!-- Filters -->
+  <div class="cash-filters" id="cash-filters">
+    <div class="cash-filters-row">
+      <div class="cash-filter-group cash-filter-date">
+        <label class="cash-filter-label" for="cash-date-from">С даты</label>
+        <input type="date" class="cash-input" id="cash-date-from">
+      </div>
+      <div class="cash-filter-group cash-filter-date">
+        <label class="cash-filter-label" for="cash-date-to">По дату</label>
+        <input type="date" class="cash-input" id="cash-date-to">
+      </div>
+      <div class="cash-filter-group">
+        <label class="cash-filter-label" for="cash-account">Счёт</label>
+        <select class="cash-select" id="cash-account">
+          <option value="">Все счета</option>
+        </select>
+      </div>
+      <div class="cash-filter-group">
+        <label class="cash-filter-label" for="cash-counterparty">Контрагент</label>
+        <select class="cash-select" id="cash-counterparty">
+          <option value="">Все контрагенты</option>
+        </select>
+      </div>
+      <div class="cash-filter-group">
+        <label class="cash-filter-label" for="cash-article">Статья</label>
+        <select class="cash-select" id="cash-article">
+          <option value="">Все статьи</option>
+        </select>
+      </div>
+      <div class="cash-filter-group">
+        <label class="cash-filter-label" for="cash-direction">Направление</label>
+        <select class="cash-select" id="cash-direction">
+          <option value="">Все направления</option>
+        </select>
+      </div>
+      <div class="cash-filter-actions">
+        <button class="cash-btn-apply" id="cash-btn-apply" onclick="cashApplyFilters()">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="cash-kpis" id="cash-kpis">
+    <div class="cash-kpi-card">
+      <div class="cash-kpi-label">ЧДП за период</div>
+      <div class="cash-kpi-value" id="cash-kpi-ndp">—</div>
+      <div class="cash-kpi-sub" id="cash-kpi-ndp-sub">Чистый денежный поток</div>
+    </div>
+    <div class="cash-kpi-card">
+      <div class="cash-kpi-label">Cash Buffer</div>
+      <div class="cash-kpi-value accent" id="cash-kpi-buffer">—</div>
+      <div class="cash-kpi-sub">Дней покрытия расходов</div>
+    </div>
+    <div class="cash-kpi-card">
+      <div class="cash-kpi-label">Стартовый остаток</div>
+      <div class="cash-kpi-value" id="cash-kpi-opening">—</div>
+      <div class="cash-kpi-sub">На начало периода</div>
+    </div>
+    <div class="cash-kpi-card">
+      <div class="cash-kpi-label">Расход за период</div>
+      <div class="cash-kpi-value negative" id="cash-kpi-expense">—</div>
+      <div class="cash-kpi-sub">Суммарный отток</div>
+    </div>
+  </div>
+
+  <!-- Charts 2x2 -->
+  <div class="cash-charts-grid" id="cash-charts-grid">
+    <div class="cash-chart-card">
+      <div class="cash-chart-title">ЧДП по месяцам</div>
+      <div class="cash-chart-area" id="cash-chart-monthly"></div>
+    </div>
+    <div class="cash-chart-card">
+      <div class="cash-chart-title">Структура расходов по статьям</div>
+      <div class="cash-chart-area" id="cash-chart-expense-pie"></div>
+    </div>
+    <div class="cash-chart-card">
+      <div class="cash-chart-title">ЧДП по направлениям</div>
+      <div class="cash-chart-area" id="cash-chart-directions"></div>
+    </div>
+    <div class="cash-chart-card">
+      <div class="cash-chart-title">Динамика остатков на счетах</div>
+      <div class="cash-chart-area" id="cash-chart-balance"></div>
+    </div>
+  </div>
+
+  <!-- Counterparties -->
+  <div class="cash-counterparty-section" id="cash-counterparty-section">
+    <div class="cash-section-header">
+      <div class="cash-section-title">Контрагенты</div>
+      <div class="cash-toggle-group">
+        <button class="cash-toggle-btn active" id="cash-toggle-suppliers" onclick="cashSwitchCounterparty('suppliers')">Поставщики</button>
+        <button class="cash-toggle-btn" id="cash-toggle-buyers" onclick="cashSwitchCounterparty('buyers')">Покупатели</button>
+      </div>
+    </div>
+    <div class="cash-chart-area" id="cash-chart-counterparties" style="min-height:260px;"></div>
+  </div>
+
+  <!-- ODDS Table -->
+  <div class="cash-table-section" id="cash-table-section">
+    <div class="cash-section-header">
+      <div class="cash-section-title">ОДДС (Отчёт о движении денежных средств)</div>
+    </div>
+    <div class="cash-table-wrap">
+      <table class="cash-table" id="cash-table">
+        <thead id="cash-table-head"></thead>
+        <tbody id="cash-table-body">
+          <tr><td colspan="99"><div class="cash-loading"><div class="cash-spinner"></div>Загрузка данных...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── Anti-race flags ───
+  var cashIsLoading    = false;
+  var cashQueuedReload = false;
+
+  // ─── State ───
+  var cashCurrentData    = null;
+  var cashCounterpartyMode = 'suppliers'; // 'suppliers' | 'buyers'
+  var cashCounterpartyData = null;
+
+  // ─── Chart instances (for resize/redraw) ───
+  var _cashCharts = {};
+
+  // ─── Init ───
+  function cashInit() {
+    // Default date range: first day of current year to today
+    var now  = new Date();
+    var y    = now.getFullYear();
+    var from = y + '-01-01';
+    var to   = now.toISOString().slice(0, 10);
+    document.getElementById('cash-date-from').value = from;
+    document.getElementById('cash-date-to').value   = to;
+
+    cashLoadData();
+  }
+
+  // ─── Build params ───
+  function cashBuildParams() {
+    return {
+      dateFrom:     document.getElementById('cash-date-from').value   || null,
+      dateTo:       document.getElementById('cash-date-to').value     || null,
+      account:      document.getElementById('cash-account').value     || null,
+      counterparty: document.getElementById('cash-counterparty').value|| null,
+      article:      document.getElementById('cash-article').value     || null,
+      direction:    document.getElementById('cash-direction').value   || null
+    };
+  }
+
+  // ─── Load data (anti-race) ───
+  function cashLoadData() {
+    if (cashIsLoading) {
+      cashQueuedReload = true;
+      return;
+    }
+    cashIsLoading = true;
+    cashQueuedReload = false;
+
+    var btn = document.getElementById('cash-btn-apply');
+    if (btn) btn.disabled = true;
+
+    cashShowTableLoading();
+
+    var params = cashBuildParams();
+
+    google.script.run
+      .withSuccessHandler(function(resp) {
+        cashIsLoading = false;
+        if (btn) btn.disabled = false;
+
+        if (!resp || resp.status === 'error') {
+          cashShowError(resp && resp.error ? resp.error : 'Неизвестная ошибка сервера');
+          if (cashQueuedReload) { cashQueuedReload = false; cashLoadData(); }
+          return;
+        }
+
+        cashCurrentData = resp.data || {};
+        cashPopulateFilters(cashCurrentData.meta || {});
+        cashRenderKpis(cashCurrentData.kpis || {});
+
+        onChartsReady(function() {
+          cashRenderCharts(cashCurrentData.charts || {});
+        });
+
+        cashRenderTable(cashCurrentData.tables || {});
+
+        if (cashQueuedReload) { cashQueuedReload = false; cashLoadData(); }
+      })
+      .withFailureHandler(function(err) {
+        cashIsLoading = false;
+        if (btn) btn.disabled = false;
+        cashShowError('Ошибка подключения: ' + (err && err.message ? err.message : String(err)));
+        if (cashQueuedReload) { cashQueuedReload = false; cashLoadData(); }
+      })
+      .cashApiMoney(params);
+  }
+
+  // ─── Apply filters ───
+  function cashApplyFilters() {
+    cashLoadData();
+  }
+
+  // ─── Populate filter dropdowns from meta ───
+  function cashPopulateFilters(meta) {
+    cashFillSelect('cash-account',      meta.accounts     || [], true);
+    cashFillSelect('cash-counterparty', meta.counterparties|| [], true);
+    cashFillSelect('cash-article',      meta.articles     || [], true);
+    cashFillSelect('cash-direction',    meta.directions   || [], true);
+  }
+
+  function cashFillSelect(id, items, keepCurrent) {
+    var sel    = document.getElementById(id);
+    if (!sel) return;
+    var cur    = keepCurrent ? sel.value : '';
+    var first  = sel.options[0];
+    sel.innerHTML = '';
+    if (first) sel.appendChild(first);
+    items.forEach(function(item) {
+      var opt = document.createElement('option');
+      opt.value = item;
+      opt.textContent = item;
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  }
+
+  // ─── Render KPIs ───
+  function cashRenderKpis(kpis) {
+    var ndp     = Number(kpis.netCashFlow   || 0);
+    var buf     = Number(kpis.cashBuffer    || 0);
+    var opening = Number(kpis.openingBalance|| 0);
+    var expense = Number(kpis.totalExpense  || 0);
+
+    var ndpEl = document.getElementById('cash-kpi-ndp');
+    if (ndpEl) {
+      ndpEl.textContent = formatCurrencyFull(ndp);
+      ndpEl.className = 'cash-kpi-value ' + (ndp >= 0 ? 'positive' : 'negative');
+    }
+
+    var bufEl = document.getElementById('cash-kpi-buffer');
+    if (bufEl) bufEl.textContent = Math.round(buf) + ' дн.';
+
+    var opEl = document.getElementById('cash-kpi-opening');
+    if (opEl) opEl.textContent = formatCurrencyFull(opening);
+
+    var expEl = document.getElementById('cash-kpi-expense');
+    if (expEl) expEl.textContent = formatCurrencyFull(Math.abs(expense));
+  }
+
+  // ─── Render Charts ───
+  function cashRenderCharts(charts) {
+    cashDrawMonthlyChart(charts.byMonth          || []);
+    cashDrawExpensePie(charts.expenseStructure    || []);
+    cashDrawDirectionsChart(charts.byDirection    || []);
+    cashDrawBalanceChart(charts.byMonth           || []);
+
+    cashCounterpartyData = charts.byCounterparty || {};
+    cashDrawCounterpartiesChart(cashCounterpartyMode);
+  }
+
+  // Monthly bar chart: income / expense / net
+  function cashDrawMonthlyChart(rows) {
+    var el = document.getElementById('cash-chart-monthly');
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="cash-no-data-chart">Нет данных</div>';
+      return;
+    }
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'Приход');
+    data.addColumn('number', 'Расход');
+    data.addColumn('number', 'ЧДП');
+
+    rows.forEach(function(r) {
+      data.addRow([
+        String(r.month || ''),
+        Number(r.income  || 0) / 1e6,
+        -Math.abs(Number(r.expense || 0)) / 1e6,
+        Number(r.net     || 0) / 1e6
+      ]);
+    });
+
+    var opts = cashChartOptions({
+      seriesType: 'bars',
+      series: { 2: { type: 'line', color: '#00d9ff', lineWidth: 2, pointSize: 5 } },
+      colors: ['#14b8a6', '#ef4444', '#00d9ff'],
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      isStacked: false,
+      bar: { groupWidth: '60%' }
+    });
+
+    var chart = new google.visualization.ComboChart(el);
+    chart.draw(data, opts);
+    _cashCharts['monthly'] = { chart: chart, data: data, opts: opts, el: el };
+  }
+
+  // Expense pie
+  function cashDrawExpensePie(rows) {
+    var el = document.getElementById('cash-chart-expense-pie');
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="cash-no-data-chart">Нет данных</div>';
+      return;
+    }
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Статья');
+    data.addColumn('number', 'Сумма');
+    rows.forEach(function(r) {
+      data.addRow([String(r.article || r.name || ''), Math.abs(Number(r.amount || 0))]);
+    });
+
+    var opts = cashChartOptions({
+      pieHole: 0.45,
+      colors: ['#00d9ff','#14b8a6','#a855f7','#f59e0b','#ef4444','#22c55e','#3b82f6','#ec4899','#f97316','#6366f1'],
+      legend: { position: 'labeled', labeledValueText: 'percent', textStyle: { color: '#94a3b8', fontSize: 11 } },
+      pieSliceText: 'none',
+      chartArea: { left: 10, right: 10, top: 10, bottom: 10, width: '100%', height: '90%' }
+    });
+
+    var chart = new google.visualization.PieChart(el);
+    chart.draw(data, opts);
+    _cashCharts['expensePie'] = { chart: chart, data: data, opts: opts, el: el };
+  }
+
+  // Directions bar
+  function cashDrawDirectionsChart(rows) {
+    var el = document.getElementById('cash-chart-directions');
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="cash-no-data-chart">Нет данных</div>';
+      return;
+    }
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Направление');
+    data.addColumn('number', 'ЧДП, млн ₽');
+    rows.forEach(function(r) {
+      data.addRow([String(r.direction || r.name || ''), Number(r.net || r.amount || 0) / 1e6]);
+    });
+
+    var opts = cashChartOptions({
+      colors: ['#00d9ff'],
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 }, title: 'млн ₽', titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      bar: { groupWidth: '55%' },
+      orientation: 'horizontal'
+    });
+
+    var chart = new google.visualization.BarChart(el);
+    chart.draw(data, opts);
+    _cashCharts['directions'] = { chart: chart, data: data, opts: opts, el: el };
+  }
+
+  // Balance line chart
+  function cashDrawBalanceChart(rows) {
+    var el = document.getElementById('cash-chart-balance');
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="cash-no-data-chart">Нет данных</div>';
+      return;
+    }
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'Остаток, млн ₽');
+    data.addColumn('number', 'Ср. расход/мес');
+    rows.forEach(function(r) {
+      data.addRow([
+        String(r.month || ''),
+        Number(r.balance || 0) / 1e6,
+        Number(r.avgExpense || 0) / 1e6
+      ]);
+    });
+
+    var opts = cashChartOptions({
+      series: {
+        0: { color: '#00d9ff', lineWidth: 2, pointSize: 4 },
+        1: { color: '#f59e0b', lineWidth: 1, lineDashStyle: [4,4], pointSize: 0 }
+      },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      curveType: 'function'
+    });
+
+    var chart = new google.visualization.LineChart(el);
+    chart.draw(data, opts);
+    _cashCharts['balance'] = { chart: chart, data: data, opts: opts, el: el };
+  }
+
+  // Switch counterparty mode
+  function cashSwitchCounterparty(mode) {
+    cashCounterpartyMode = mode;
+    document.getElementById('cash-toggle-suppliers').classList.toggle('active', mode === 'suppliers');
+    document.getElementById('cash-toggle-buyers').classList.toggle('active', mode === 'buyers');
+    if (cashCounterpartyData) {
+      cashDrawCounterpartiesChart(mode);
+    }
+  }
+
+  // Counterparties bar chart
+  function cashDrawCounterpartiesChart(mode) {
+    var el = document.getElementById('cash-chart-counterparties');
+    if (!el) return;
+    var source = cashCounterpartyData && cashCounterpartyData[mode];
+    var rows = source ? (source.items || source || []) : [];
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="cash-no-data-chart">Нет данных</div>';
+      return;
+    }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Контрагент');
+    data.addColumn('number', 'Сумма, млн ₽');
+    data.addColumn({type: 'string', role: 'style'});
+
+    var total = rows.reduce(function(s, r) { return s + Math.abs(Number(r.amount || 0)); }, 0);
+
+    rows.slice(0, 20).forEach(function(r) {
+      var amt = Math.abs(Number(r.amount || 0));
+      var share = total > 0 ? amt / total : 0;
+      var color = share >= 0.30 ? '#ef4444' : '#00d9ff';
+      data.addRow([String(r.name || ''), amt / 1e6, 'color: ' + color]);
+    });
+
+    var opts = cashChartOptions({
+      legend: { position: 'none' },
+      vAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } },
+      hAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      bar: { groupWidth: '60%' },
+      orientation: 'horizontal'
+    });
+
+    var chart = new google.visualization.BarChart(el);
+    chart.draw(data, opts);
+    _cashCharts['counterparties'] = { chart: chart, data: data, opts: opts, el: el };
+  }
+
+  // Shared chart options
+  function cashChartOptions(extra) {
+    var base = {
+      backgroundColor:  'transparent',
+      fontName:         'Manrope',
+      fontSize:         12,
+      titleTextStyle:   { color: '#f1f5f9', fontSize: 13, bold: true },
+      legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, position: 'top' },
+      tooltip: { textStyle: { color: '#0f172a', fontSize: 12 }, showColorCode: true },
+      chartArea: { left: 60, right: 20, top: 36, bottom: 40, width: '100%', height: '100%' },
+      gridlines: { color: 'rgba(51,65,85,0.6)' },
+      minorGridlines: { color: 'transparent' }
+    };
+    return Object.assign({}, base, extra);
+  }
+
+  // Build tree from flat odds array [{sectionOdds, operationType, article, monthlyAmounts, total}]
+  function cashBuildOddsTree(flatRows) {
+    var balance = null;
+    var sections = new Map();
+    flatRows.forEach(function(row) {
+      if (row.sectionOdds === '__BALANCE__') { balance = row; return; }
+      var secKey = row.sectionOdds || '(без раздела)';
+      if (!sections.has(secKey)) {
+        sections.set(secKey, { name: secKey, byMonth: {}, total: 0, types: new Map() });
+      }
+      var sec = sections.get(secKey);
+      var typeKey = row.operationType || '(без вида)';
+      if (!sec.types.has(typeKey)) {
+        sec.types.set(typeKey, { name: typeKey, byMonth: {}, total: 0, items: [] });
+      }
+      var typ = sec.types.get(typeKey);
+      var itemAmounts = row.monthlyAmounts || {};
+      Object.keys(itemAmounts).forEach(function(mk) {
+        var v = itemAmounts[mk] || 0;
+        sec.byMonth[mk] = (sec.byMonth[mk] || 0) + v;
+        typ.byMonth[mk] = (typ.byMonth[mk] || 0) + v;
+      });
+      sec.total += row.total || 0;
+      typ.total += row.total || 0;
+      typ.items.push({ name: row.article || '', byMonth: itemAmounts, total: row.total || 0 });
+    });
+    var tree = [];
+    sections.forEach(function(sec) {
+      var typesArr = [];
+      sec.types.forEach(function(t) { typesArr.push(t); });
+      tree.push({ name: sec.name, byMonth: sec.byMonth, total: sec.total, types: typesArr });
+    });
+    return { balance: balance, tree: tree };
+  }
+
+  // ─── Render ODDS Table ───
+  function cashRenderTable(tables) {
+    var head = document.getElementById('cash-table-head');
+    var body = document.getElementById('cash-table-body');
+    if (!head || !body) return;
+
+    var built  = cashBuildOddsTree(tables.odds || []);
+    var months = tables.months || [];
+    var tree   = built.tree || [];
+
+    if (!tree.length) {
+      head.innerHTML = '';
+      body.innerHTML = '<tr><td colspan="99"><div class="cash-empty">Нет данных за выбранный период</div></td></tr>';
+      return;
+    }
+
+    // Header row
+    var headHtml = '<tr><th>Раздел / Вид / Статья</th>';
+    months.forEach(function(m) { headHtml += '<th>' + escHtml(m) + '</th>'; });
+    headHtml += '<th>Итого</th></tr>';
+    head.innerHTML = headHtml;
+
+    // Body rows
+    var bodyHtml = '';
+    var rowIdx = 0;
+
+    tree.forEach(function(section) {
+      var secId = 'cash-sec-' + (rowIdx++);
+      bodyHtml += '<tr class="cash-row-section">';
+      bodyHtml += '<td><button class="cash-expand-btn" onclick="cashToggleSection(\'' + secId + '\', this)">&#9654;</button>' + escHtml(section.name) + '</td>';
+      months.forEach(function(m) {
+        var v = Number((section.byMonth || {})[m] || 0);
+        bodyHtml += '<td class="' + cashValClass(v) + '">' + cashFmtCell(v) + '</td>';
+      });
+      var tot = Number(section.total || 0);
+      bodyHtml += '<td class="' + cashValClass(tot) + '"><b>' + cashFmtCell(tot) + '</b></td>';
+      bodyHtml += '</tr>';
+
+      (section.types || []).forEach(function(type) {
+        var typeId = 'cash-type-' + (rowIdx++);
+        bodyHtml += '<tr class="cash-row-type ' + secId + '">';
+        bodyHtml += '<td style="padding-left:24px"><button class="cash-expand-btn" onclick="cashToggleSection(\'' + typeId + '\', this)">&#9654;</button>' + escHtml(type.name) + '</td>';
+        months.forEach(function(m) {
+          var v = Number((type.byMonth || {})[m] || 0);
+          bodyHtml += '<td class="' + cashValClass(v) + '">' + cashFmtCell(v) + '</td>';
+        });
+        var tot2 = Number(type.total || 0);
+        bodyHtml += '<td class="' + cashValClass(tot2) + '">' + cashFmtCell(tot2) + '</td>';
+        bodyHtml += '</tr>';
+
+        (type.items || []).forEach(function(item) {
+          bodyHtml += '<tr class="cash-row-item ' + typeId + '">';
+          bodyHtml += '<td style="padding-left:44px">' + escHtml(item.name) + '</td>';
+          months.forEach(function(m) {
+            var v = Number((item.byMonth || {})[m] || 0);
+            bodyHtml += '<td class="' + cashValClass(v) + '">' + cashFmtCell(v) + '</td>';
+          });
+          var tot3 = Number(item.total || 0);
+          bodyHtml += '<td class="' + cashValClass(tot3) + '">' + cashFmtCell(tot3) + '</td>';
+          bodyHtml += '</tr>';
+        });
+      });
+    });
+
+    body.innerHTML = bodyHtml;
+  }
+
+  function cashValClass(v) {
+    if (v > 0) return 'cash-value-pos';
+    if (v < 0) return 'cash-value-neg';
+    return '';
+  }
+
+  function cashFmtCell(v) {
+    if (v === 0) return '—';
+    return formatCurrencyFull(v);
+  }
+
+  function cashToggleSection(groupClass, btn) {
+    var rows = document.querySelectorAll('.' + groupClass);
+    var isOpen = btn.classList.contains('open');
+    btn.classList.toggle('open', !isOpen);
+    rows.forEach(function(r) {
+      if (!isOpen) {
+        r.classList.add('expanded');
+      } else {
+        r.classList.remove('expanded');
+        // Also close children
+        var childBtns = r.querySelectorAll('.cash-expand-btn.open');
+        childBtns.forEach(function(cb) {
+          cb.classList.remove('open');
+          var childClass = cb.getAttribute('onclick').match(/'([^']+)'/);
+          if (childClass) {
+            document.querySelectorAll('.' + childClass[1]).forEach(function(cr) { cr.classList.remove('expanded'); });
+          }
+        });
+      }
+    });
+  }
+
+  // ─── Error / loading states ───
+  function cashShowError(msg) {
+    var body = document.getElementById('cash-table-body');
+    if (body) {
+      body.innerHTML = '<tr><td colspan="99"><div style="padding:20px;color:#fca5a5;font-size:13px;">Ошибка: ' + escHtml(msg) + '</div></td></tr>';
+    }
+    // Clear KPIs
+    ['cash-kpi-ndp','cash-kpi-buffer','cash-kpi-opening','cash-kpi-expense'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.className = 'cash-kpi-value'; }
+    });
+    console.error('[cash] API error:', msg);
+  }
+
+  function cashShowTableLoading() {
+    var body = document.getElementById('cash-table-body');
+    if (body) body.innerHTML = '<tr><td colspan="99"><div class="cash-loading"><div class="cash-spinner"></div>Загрузка...</div></td></tr>';
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── Expose public API for template.html refresh button ───
+  window.cashLoadData = cashLoadData;
+  window.cashSwitchCounterparty = cashSwitchCounterparty;
+  window.cashApplyFilters = cashApplyFilters;
+  window.cashToggleSection = cashToggleSection;
+
+  // ─── Boot ───
+  cashInit();
+
+})();
+</script>

@@ -1,0 +1,881 @@
+<!-- profit.html — FRAGMENT (no <!DOCTYPE>, no <html>/<head>/<body>) -->
+<style>
+  /* ─── profit namespace ─── */
+
+  .profit-page { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Filters */
+  .profit-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .profit-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .profit-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 130px;
+    flex: 1;
+  }
+
+  .profit-filter-group.profit-filter-date { min-width: 140px; max-width: 180px; flex: 0 0 160px; }
+
+  .profit-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .profit-input, .profit-select {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 13px;
+    padding: 8px 10px;
+    height: 38px;
+    width: 100%;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .profit-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .profit-input:focus, .profit-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
+  }
+
+  .profit-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+  }
+
+  .profit-filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .profit-btn-apply, .profit-btn-reset {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: opacity var(--transition), box-shadow var(--transition), background var(--transition);
+    white-space: nowrap;
+    border: none;
+  }
+
+  .profit-btn-apply {
+    background: var(--accent);
+    color: #0f172a;
+    box-shadow: var(--accent-glow);
+  }
+
+  .profit-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
+  .profit-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  .profit-btn-reset {
+    background: none;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .profit-btn-reset:hover { color: var(--text-primary); border-color: var(--border-light); background: var(--bg-hover); }
+
+  /* Multiselect */
+  .profit-multiselect {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    min-height: 38px;
+    padding: 2px 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color var(--transition);
+    position: relative;
+  }
+
+  .profit-multiselect:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,217,255,0.15); }
+
+  .profit-multiselect select {
+    position: absolute;
+    opacity: 0;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    cursor: pointer;
+  }
+
+  .profit-tag {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(0,217,255,0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .profit-tag-placeholder {
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 0 4px;
+  }
+
+  /* KPI Cards */
+  .profit-kpis {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+  }
+
+  .profit-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transition: border-color var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .profit-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+
+  .profit-kpi-card:hover { border-color: var(--border-light); }
+  .profit-kpi-card:hover::before { opacity: 1; }
+
+  .profit-kpi-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+
+  .profit-kpi-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .profit-kpi-value.positive { color: var(--green); }
+  .profit-kpi-value.negative { color: var(--red); }
+  .profit-kpi-value.accent   { color: var(--accent); }
+  .profit-kpi-value.teal     { color: var(--teal); }
+  .profit-kpi-value.purple   { color: var(--purple); }
+
+  .profit-kpi-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  /* Charts */
+  .profit-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .profit-chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 300px;
+  }
+
+  .profit-chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .profit-chart-area {
+    flex: 1;
+    min-height: 220px;
+    position: relative;
+  }
+
+  /* Project Tables */
+  .profit-projects-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .profit-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .profit-direction-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profit-direction-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0,217,255,0.2);
+  }
+
+  .profit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .profit-table th {
+    padding: 8px 12px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15,23,42,0.5);
+    white-space: nowrap;
+  }
+
+  .profit-table th:first-child { text-align: left; }
+
+  .profit-table td {
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid rgba(51,65,85,0.4);
+    color: var(--text-secondary);
+  }
+
+  .profit-table td:first-child { text-align: left; color: var(--text-primary); }
+
+  .profit-table tr:last-child td { border-bottom: none; }
+  .profit-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .profit-table tr.profit-row-total td {
+    font-weight: 700;
+    color: var(--text-primary);
+    background: rgba(0,217,255,0.04);
+    border-top: 1px solid var(--border);
+  }
+
+  .profit-val-pos { color: var(--green) !important; }
+  .profit-val-neg { color: var(--red)   !important; }
+
+  /* Loading/empty */
+  .profit-loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 40px; color: var(--text-muted); font-size: 13px;
+  }
+
+  .profit-spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: profitSpin 0.8s linear infinite;
+  }
+
+  @keyframes profitSpin { to { transform: rotate(360deg); } }
+
+  .profit-no-data {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); font-size: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .profit-kpis { grid-template-columns: repeat(3, 1fr); }
+    .profit-charts-grid { grid-template-columns: 1fr; }
+    .profit-filter-group { flex: 1 1 140px; }
+    .profit-filter-group.profit-filter-date { flex: 1 1 140px; max-width: none; }
+  }
+
+  @media (max-width: 480px) {
+    .profit-kpis { grid-template-columns: repeat(2, 1fr); }
+    .profit-kpi-value { font-size: 15px; }
+  }
+</style>
+
+<div class="profit-page" id="profit-page">
+
+  <!-- Filters -->
+  <div class="profit-filters">
+    <div class="profit-filters-row">
+      <div class="profit-filter-group profit-filter-date">
+        <label class="profit-filter-label" for="profit-date-from">С даты</label>
+        <input type="date" class="profit-input" id="profit-date-from">
+      </div>
+      <div class="profit-filter-group profit-filter-date">
+        <label class="profit-filter-label" for="profit-date-to">По дату</label>
+        <input type="date" class="profit-input" id="profit-date-to">
+      </div>
+      <div class="profit-filter-group">
+        <label class="profit-filter-label">Направление</label>
+        <div class="profit-multiselect" id="profit-dir-multiselect">
+          <span class="profit-tag-placeholder" id="profit-dir-placeholder">Все направления</span>
+          <select id="profit-directions" multiple style="opacity:0;position:absolute;width:100%;height:100%;top:0;left:0;cursor:pointer;" onchange="profitUpdateDirectionTags()">
+          </select>
+        </div>
+      </div>
+      <div class="profit-filter-group">
+        <label class="profit-filter-label">Раздел ОПиУ</label>
+        <div class="profit-multiselect" id="profit-sec-multiselect">
+          <span class="profit-tag-placeholder" id="profit-sec-placeholder">Все разделы</span>
+          <select id="profit-sections" multiple style="opacity:0;position:absolute;width:100%;height:100%;top:0;left:0;cursor:pointer;" onchange="profitUpdateSectionTags()">
+            <option value="1">1. Выручка</option>
+            <option value="2">2. Себестоимость</option>
+            <option value="3">3. Валовая прибыль</option>
+            <option value="4">4. Операционные расходы</option>
+            <option value="5">5. EBITDA</option>
+            <option value="6">6. Прочие</option>
+            <option value="7">7. ЧП</option>
+          </select>
+        </div>
+      </div>
+      <div class="profit-filter-actions">
+        <button class="profit-btn-reset" onclick="profitResetFilters()">Сброс</button>
+        <button class="profit-btn-apply" id="profit-btn-apply" onclick="profitApplyFilters()">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="profit-kpis" id="profit-kpis">
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Выручка</div>
+      <div class="profit-kpi-value accent" id="profit-kpi-revenue">—</div>
+      <div class="profit-kpi-sub" id="profit-kpi-revenue-sub">За период</div>
+    </div>
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Себестоимость</div>
+      <div class="profit-kpi-value" id="profit-kpi-cogs">—</div>
+      <div class="profit-kpi-sub" id="profit-kpi-cogs-share">Доля от выручки</div>
+    </div>
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Валовая прибыль</div>
+      <div class="profit-kpi-value teal" id="profit-kpi-gross">—</div>
+      <div class="profit-kpi-sub" id="profit-kpi-mr">MR%</div>
+    </div>
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Пост. затраты</div>
+      <div class="profit-kpi-value" id="profit-kpi-fixed">—</div>
+      <div class="profit-kpi-sub" id="profit-kpi-fixed-share">Доля от выручки</div>
+    </div>
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Чистая прибыль</div>
+      <div class="profit-kpi-value" id="profit-kpi-net">—</div>
+      <div class="profit-kpi-sub">Разделы 1–7</div>
+    </div>
+    <div class="profit-kpi-card">
+      <div class="profit-kpi-label">Рентабельность</div>
+      <div class="profit-kpi-value purple" id="profit-kpi-margin">—</div>
+      <div class="profit-kpi-sub">ЧП / Выручка</div>
+    </div>
+  </div>
+
+  <!-- Charts 2x2 -->
+  <div class="profit-charts-grid" id="profit-charts-grid">
+    <div class="profit-chart-card">
+      <div class="profit-chart-title">Выручка + MR% по месяцам</div>
+      <div class="profit-chart-area" id="profit-chart-revenue-mr"></div>
+    </div>
+    <div class="profit-chart-card">
+      <div class="profit-chart-title">Выручка по направлениям (накопл.)</div>
+      <div class="profit-chart-area" id="profit-chart-revenue-dir"></div>
+    </div>
+    <div class="profit-chart-card">
+      <div class="profit-chart-title">Валовая прибыль по направлениям (накопл.)</div>
+      <div class="profit-chart-area" id="profit-chart-gross-dir"></div>
+    </div>
+    <div class="profit-chart-card">
+      <div class="profit-chart-title">ЧП + Рентабельность по месяцам</div>
+      <div class="profit-chart-area" id="profit-chart-net-margin"></div>
+    </div>
+  </div>
+
+  <!-- Projects Tables -->
+  <div class="profit-projects-section" id="profit-projects-section">
+    <div class="profit-section-title">Таблица по направлениям и проектам</div>
+    <div id="profit-projects-container">
+      <div class="profit-loading"><div class="profit-spinner"></div>Загрузка...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── Anti-race ───
+  var profitIsLoading    = false;
+  var profitQueuedReload = false;
+
+  // ─── State ───
+  var profitCurrentData = null;
+
+  // ─── Chart refs ───
+  var _profitCharts = {};
+
+  // ─── Init ───
+  function profitInit() {
+    var now  = new Date();
+    var y    = now.getFullYear();
+    var from = y + '-01-01';
+    var to   = now.toISOString().slice(0, 10);
+    document.getElementById('profit-date-from').value = from;
+    document.getElementById('profit-date-to').value   = to;
+    profitLoadData();
+  }
+
+  // ─── Build params ───
+  function profitBuildParams() {
+    var dirSel  = document.getElementById('profit-directions');
+    var secSel  = document.getElementById('profit-sections');
+
+    var dirs = profitGetMultiValues(dirSel);
+    var secs = profitGetMultiValues(secSel);
+
+    return {
+      dateFrom:   document.getElementById('profit-date-from').value || null,
+      dateTo:     document.getElementById('profit-date-to').value   || null,
+      directions: dirs.length ? dirs : null,
+      sections:   secs.length ? secs : null
+    };
+  }
+
+  function profitGetMultiValues(sel) {
+    if (!sel) return [];
+    var vals = [];
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].selected) vals.push(sel.options[i].value);
+    }
+    return vals;
+  }
+
+  // ─── Load data ───
+  function profitLoadData() {
+    if (profitIsLoading) {
+      profitQueuedReload = true;
+      return;
+    }
+    profitIsLoading = true;
+    profitQueuedReload = false;
+
+    var btn = document.getElementById('profit-btn-apply');
+    if (btn) btn.disabled = true;
+
+    var container = document.getElementById('profit-projects-container');
+    if (container) container.innerHTML = '<div class="profit-loading"><div class="profit-spinner"></div>Загрузка...</div>';
+
+    var params = profitBuildParams();
+
+    google.script.run
+      .withSuccessHandler(function(resp) {
+        profitIsLoading = false;
+        if (btn) btn.disabled = false;
+
+        if (!resp || resp.status === 'error') {
+          profitShowError(resp && resp.error ? resp.error : 'Неизвестная ошибка');
+          if (profitQueuedReload) { profitQueuedReload = false; profitLoadData(); }
+          return;
+        }
+
+        profitCurrentData = resp.data || {};
+        profitPopulateDirections(profitCurrentData.meta || {});
+        profitRenderKpis(profitCurrentData.kpis || {});
+
+        onChartsReady(function() {
+          profitRenderCharts(profitCurrentData.charts || {});
+        });
+
+        profitRenderTables(profitCurrentData.tables || {});
+
+        if (profitQueuedReload) { profitQueuedReload = false; profitLoadData(); }
+      })
+      .withFailureHandler(function(err) {
+        profitIsLoading = false;
+        if (btn) btn.disabled = false;
+        profitShowError('Ошибка подключения: ' + (err && err.message ? err.message : String(err)));
+        if (profitQueuedReload) { profitQueuedReload = false; profitLoadData(); }
+      })
+      .profitApiProfit(params);
+  }
+
+  function profitApplyFilters() { profitLoadData(); }
+
+  function profitResetFilters() {
+    var now = new Date();
+    var y   = now.getFullYear();
+    document.getElementById('profit-date-from').value = y + '-01-01';
+    document.getElementById('profit-date-to').value   = now.toISOString().slice(0, 10);
+    var dirSel = document.getElementById('profit-directions');
+    var secSel = document.getElementById('profit-sections');
+    if (dirSel) for (var i = 0; i < dirSel.options.length; i++) dirSel.options[i].selected = false;
+    if (secSel) for (var j = 0; j < secSel.options.length; j++) secSel.options[j].selected = false;
+    profitUpdateDirectionTags();
+    profitUpdateSectionTags();
+    profitLoadData();
+  }
+
+  function profitPopulateDirections(meta) {
+    var dirs = meta.directions || [];
+    var sel  = document.getElementById('profit-directions');
+    if (!sel) return;
+    var curVals = profitGetMultiValues(sel);
+    sel.innerHTML = '';
+    dirs.forEach(function(d) {
+      var opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (curVals.indexOf(d) !== -1) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    profitUpdateDirectionTags();
+  }
+
+  function profitUpdateDirectionTags() {
+    profitUpdateTags('profit-directions', 'profit-dir-multiselect', 'profit-dir-placeholder', 'Все направления');
+  }
+
+  function profitUpdateSectionTags() {
+    profitUpdateTags('profit-sections', 'profit-sec-multiselect', 'profit-sec-placeholder', 'Все разделы');
+  }
+
+  function profitUpdateTags(selId, containerId, placeholderId, defaultText) {
+    var sel       = document.getElementById(selId);
+    var container = document.getElementById(containerId);
+    var placeholder = document.getElementById(placeholderId);
+    if (!sel || !container) return;
+
+    var selected = profitGetMultiValues(sel);
+    var oldTags = container.querySelectorAll('.profit-tag');
+    oldTags.forEach(function(t) { t.remove(); });
+
+    if (selected.length === 0) {
+      if (placeholder) { placeholder.style.display = ''; placeholder.textContent = defaultText; }
+    } else {
+      if (placeholder) placeholder.style.display = 'none';
+      var frag = document.createDocumentFragment();
+      selected.slice(0, 3).forEach(function(v) {
+        var tag = document.createElement('span');
+        tag.className = 'profit-tag';
+        tag.textContent = v;
+        frag.appendChild(tag);
+      });
+      if (selected.length > 3) {
+        var more = document.createElement('span');
+        more.className = 'profit-tag';
+        more.textContent = '+' + (selected.length - 3);
+        frag.appendChild(more);
+      }
+      container.insertBefore(frag, sel);
+    }
+  }
+
+  function profitRenderKpis(kpis) {
+    var revenue      = Number(kpis.revenue        || 0);
+    var cogs         = Number(kpis.costOfGoods    || 0);
+    var gross        = Number(kpis.grossProfit    || 0);
+    var mr           = Number(kpis.marginPct      || 0);
+    var fixedPct     = Number(kpis.fixedCostsPct  || 0);
+    var net          = Number(kpis.netProfit      || 0);
+    var margin       = Number(kpis.netProfitMargin|| 0);
+    var cogsShare    = revenue !== 0 ? (Math.abs(cogs) / Math.abs(revenue) * 100) : 0;
+
+    profitSetKpi('profit-kpi-revenue', formatCurrencyFull(revenue), 'accent');
+    profitSetKpi('profit-kpi-cogs',    formatCurrencyFull(Math.abs(cogs)), cogs < 0 ? 'negative' : '');
+    profitSetKpi('profit-kpi-gross',   formatCurrencyFull(gross), gross >= 0 ? 'teal' : 'negative');
+    profitSetKpi('profit-kpi-fixed',   formatPercent(fixedPct), fixedPct > 50 ? 'negative' : '');
+    profitSetKpi('profit-kpi-net',     formatCurrencyFull(net), net >= 0 ? 'positive' : 'negative');
+    profitSetKpi('profit-kpi-margin',  formatPercent(margin), margin >= 0 ? 'purple' : 'negative');
+
+    var cogsSubEl = document.getElementById('profit-kpi-cogs-share');
+    if (cogsSubEl) cogsSubEl.textContent = formatPercent(cogsShare) + ' от выручки';
+
+    var mrEl = document.getElementById('profit-kpi-mr');
+    if (mrEl) mrEl.textContent = 'MR ' + formatPercent(mr);
+
+    var fixedSubEl = document.getElementById('profit-kpi-fixed-share');
+    if (fixedSubEl) fixedSubEl.textContent = 'доля постоянных затрат';
+  }
+
+  function profitSetKpi(id, val, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.className = 'profit-kpi-value' + (cls ? ' ' + cls : '');
+  }
+
+  function profitRenderCharts(charts) {
+    profitDrawRevenueMR(charts.revenueMargin          || []);
+    profitDrawRevenueDir(charts.revenueByDirection    || {});
+    profitDrawGrossDir(charts.grossProfitByDirection  || {});
+    profitDrawNetMargin(charts.netProfitMargin         || []);
+  }
+
+  function profitDrawRevenueMR(rows) {
+    var el = document.getElementById('profit-chart-revenue-mr');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="profit-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'Выручка, млн ₽');
+    data.addColumn('number', 'MR%');
+
+    rows.forEach(function(r) {
+      data.addRow([String(r.month || ''), Number(r.revenue || 0) / 1e6, Number(r.marginPct || 0)]);
+    });
+
+    var opts = profitChartOptions({
+      seriesType: 'bars',
+      series: {
+        0: { color: '#14b8a6', targetAxisIndex: 0 },
+        1: { type: 'line', color: '#a855f7', lineWidth: 2, pointSize: 5, targetAxisIndex: 1 }
+      },
+      vAxes: {
+        0: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+        1: { title: '%',     textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } }
+      },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ComboChart(el);
+    chart.draw(data, opts);
+    _profitCharts['revenueMr'] = { chart, data, opts, el };
+  }
+
+  function profitDrawRevenueDir(byDir) {
+    var el = document.getElementById('profit-chart-revenue-dir');
+    if (!el) return;
+    profitDrawStackedDir(el, byDir, 'Выручка', '#profit-dir-stacked');
+  }
+
+  function profitDrawGrossDir(byDir) {
+    var el = document.getElementById('profit-chart-gross-dir');
+    if (!el) return;
+    profitDrawStackedDir(el, byDir, 'Валовая прибыль', '#profit-gross-stacked');
+  }
+
+  function profitDrawStackedDir(el, byDir, label, _key) {
+    var months = Object.keys(byDir).sort();
+    if (!months.length) { el.innerHTML = '<div class="profit-no-data">Нет данных</div>'; return; }
+
+    var dirs = [];
+    months.forEach(function(m) {
+      var dirData = byDir[m] || {};
+      Object.keys(dirData).forEach(function(d) { if (dirs.indexOf(d) === -1) dirs.push(d); });
+    });
+
+    if (!dirs.length) { el.innerHTML = '<div class="profit-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    dirs.forEach(function(d) { data.addColumn('number', d); });
+
+    months.forEach(function(m) {
+      var row = [m];
+      dirs.forEach(function(d) { row.push(Number((byDir[m] || {})[d] || 0) / 1e6); });
+      data.addRow(row);
+    });
+
+    var colors = ['#00d9ff','#14b8a6','#a855f7','#f59e0b','#ef4444','#22c55e','#3b82f6','#ec4899'];
+
+    var opts = profitChartOptions({
+      isStacked: true,
+      colors: colors.slice(0, dirs.length),
+      bar: { groupWidth: '65%' },
+      vAxis: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ColumnChart(el);
+    chart.draw(data, opts);
+  }
+
+  function profitDrawNetMargin(rows) {
+    var el = document.getElementById('profit-chart-net-margin');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div class="profit-no-data">Нет данных</div>'; return; }
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Месяц');
+    data.addColumn('number', 'ЧП, млн ₽');
+    data.addColumn('number', 'Рентабельность%');
+
+    rows.forEach(function(r) {
+      data.addRow([String(r.month || ''), Number(r.netProfit || 0) / 1e6, Number(r.marginPct || 0)]);
+    });
+
+    var opts = profitChartOptions({
+      seriesType: 'bars',
+      series: {
+        0: { color: '#00d9ff', targetAxisIndex: 0 },
+        1: { type: 'line', color: '#f59e0b', lineWidth: 2, pointSize: 5, targetAxisIndex: 1 }
+      },
+      vAxes: {
+        0: { title: 'млн ₽', textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } },
+        1: { title: '%',     textStyle: { color: '#94a3b8', fontSize: 11 }, titleTextStyle: { color: '#64748b', fontSize: 11 } }
+      },
+      hAxis: { textStyle: { color: '#94a3b8', fontSize: 11 } }
+    });
+
+    var chart = new google.visualization.ComboChart(el);
+    chart.draw(data, opts);
+    _profitCharts['netMargin'] = { chart, data, opts, el };
+  }
+
+  function profitChartOptions(extra) {
+    var base = {
+      backgroundColor: 'transparent',
+      fontName: 'Manrope',
+      fontSize: 12,
+      legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, position: 'top' },
+      tooltip: { textStyle: { color: '#0f172a', fontSize: 12 }, showColorCode: true },
+      chartArea: { left: 60, right: 50, top: 36, bottom: 40, width: '100%', height: '100%' },
+      gridlines: { color: 'rgba(51,65,85,0.6)' },
+      minorGridlines: { color: 'transparent' }
+    };
+    return Object.assign({}, base, extra);
+  }
+
+  function profitRenderTables(tables) {
+    var container = document.getElementById('profit-projects-container');
+    if (!container) return;
+
+    var byProjectArr = tables.byProject || [];
+
+    if (!byProjectArr.length) {
+      container.innerHTML = '<div style="padding:30px;color:var(--text-muted);text-align:center;">Нет данных за выбранный период</div>';
+      return;
+    }
+
+    var html = '';
+
+    byProjectArr.forEach(function(dirObj) {
+      var dir      = dirObj.direction || '—';
+      var projects = dirObj.projects  || [];
+      html += '<div class="profit-direction-block">';
+      html += '<div class="profit-direction-name">' + profitEscHtml(dir) + '</div>';
+
+      if (!projects.length) {
+        html += '<div style="color:var(--text-muted);font-size:12px;padding:10px 0;">Нет проектов</div>';
+      } else {
+        html += '<table class="profit-table"><thead><tr>';
+        html += '<th>Проект / Статья</th><th>Выручка</th><th>Валовая прибыль</th><th>Рентабельность</th>';
+        html += '</tr></thead><tbody>';
+
+        var totalRev = 0, totalGross = 0;
+
+        projects.forEach(function(p) {
+          var rev   = Number(p.revenue    || 0);
+          var gross = Number(p.grossProfit || 0);
+          var margin= Number(p.marginPct   || 0);
+          totalRev   += rev;
+          totalGross += gross;
+
+          html += '<tr>';
+          html += '<td>' + profitEscHtml(p.name || '—') + '</td>';
+          html += '<td>' + formatCurrencyFull(rev) + '</td>';
+          html += '<td class="' + (gross >= 0 ? 'profit-val-pos' : 'profit-val-neg') + '">' + formatCurrencyFull(gross) + '</td>';
+          html += '<td class="' + (margin >= 0 ? 'profit-val-pos' : 'profit-val-neg') + '">' + formatPercent(margin) + '</td>';
+          html += '</tr>';
+        });
+
+        var totalMargin = totalRev !== 0 ? (totalGross / totalRev * 100) : 0;
+        html += '<tr class="profit-row-total">';
+        html += '<td>Итого по направлению</td>';
+        html += '<td>' + formatCurrencyFull(totalRev) + '</td>';
+        html += '<td class="' + (totalGross >= 0 ? 'profit-val-pos' : 'profit-val-neg') + '">' + formatCurrencyFull(totalGross) + '</td>';
+        html += '<td class="' + (totalMargin >= 0 ? 'profit-val-pos' : 'profit-val-neg') + '">' + formatPercent(totalMargin) + '</td>';
+        html += '</tr>';
+
+        html += '</tbody></table>';
+      }
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function profitShowError(msg) {
+    var container = document.getElementById('profit-projects-container');
+    if (container) container.innerHTML = '<div style="padding:20px;color:#fca5a5;font-size:13px;">Ошибка: ' + profitEscHtml(msg) + '</div>';
+    ['profit-kpi-revenue','profit-kpi-cogs','profit-kpi-gross','profit-kpi-fixed','profit-kpi-net','profit-kpi-margin'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.className = 'profit-kpi-value'; }
+    });
+    console.error('[profit] API error:', msg);
+  }
+
+  function profitEscHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.profitLoadData        = profitLoadData;
+  window.profitApplyFilters    = profitApplyFilters;
+  window.profitResetFilters    = profitResetFilters;
+  window.profitUpdateDirectionTags = profitUpdateDirectionTags;
+  window.profitUpdateSectionTags   = profitUpdateSectionTags;
+
+  profitInit();
+
+})();
+</script>

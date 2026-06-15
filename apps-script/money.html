@@ -537,14 +537,9 @@
 
   // ─── Init ───
   function cashInit() {
-    // Default date range: first day of current year to today
-    var now  = new Date();
-    var y    = now.getFullYear();
-    var from = y + '-01-01';
-    var to   = now.toISOString().slice(0, 10);
-    document.getElementById('cash-date-from').value = from;
-    document.getElementById('cash-date-to').value   = to;
-
+    var period = readPeriodFromUrlOrStorage();
+    document.getElementById('cash-date-from').value = period.dateFrom || '2023-01-01';
+    document.getElementById('cash-date-to').value   = period.dateTo   || new Date().toISOString().slice(0, 10);
     cashLoadData();
   }
 
@@ -610,6 +605,9 @@
 
   // ─── Apply filters ───
   function cashApplyFilters() {
+    var from = document.getElementById('cash-date-from').value || null;
+    var to   = document.getElementById('cash-date-to').value   || null;
+    setGlobalPeriod(from, to);
     cashLoadData();
   }
 

@@ -4,6 +4,7 @@
 
   .dashboard-page { display: flex; flex-direction: column; gap: 20px; }
 
+  /* Filters */
   .dashboard-filters {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -80,6 +81,7 @@
   .dashboard-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
   .dashboard-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
+  /* Badges */
   .dashboard-badges {
     display: flex;
     align-items: center;
@@ -117,6 +119,7 @@
     border-color: rgba(245,158,11,0.3);
   }
 
+  /* KPI Grid — 5 cols x 2 rows */
   .dashboard-kpis {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -183,6 +186,7 @@
     margin-top: 2px;
   }
 
+  /* Charts Grid */
   .dashboard-charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -221,6 +225,7 @@
     height: 100%; color: var(--text-muted); font-size: 12px;
   }
 
+  /* Loading */
   .dashboard-loading {
     display: flex; align-items: center; justify-content: center;
     gap: 12px; padding: 60px; color: var(--text-muted); font-size: 13px;
@@ -238,6 +243,7 @@
 
   @keyframes dashboardSpin { to { transform: rotate(360deg); } }
 
+  /* Section divider */
   .dashboard-section-divider {
     display: flex;
     align-items: center;
@@ -260,6 +266,11 @@
     background: var(--border);
   }
 
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .dashboard-kpis { grid-template-columns: repeat(5, 1fr); }
+  }
+
   @media (max-width: 768px) {
     .dashboard-kpis { grid-template-columns: repeat(2, 1fr); }
     .dashboard-charts-grid { grid-template-columns: 1fr; }
@@ -274,16 +285,22 @@
 
 <div class="dashboard-page" id="dashboard-page">
 
+  <!-- Filters -->
   <div class="dashboard-filters">
     <div class="dashboard-filters-row">
       <div class="dashboard-filter-group">
-        <label class="dashboard-filter-label" for="dashboard-date-to">Дата среза (Капитал)</label>
+        <label class="dashboard-filter-label" for="dashboard-date-from">С даты</label>
+        <input type="date" class="dashboard-input" id="dashboard-date-from">
+      </div>
+      <div class="dashboard-filter-group">
+        <label class="dashboard-filter-label" for="dashboard-date-to">По дату (срез)</label>
         <input type="date" class="dashboard-input" id="dashboard-date-to">
       </div>
       <button class="dashboard-btn-apply" id="dashboard-btn-apply" onclick="dashboardApplyFilters()">Применить</button>
     </div>
   </div>
 
+  <!-- Badges -->
   <div class="dashboard-badges" id="dashboard-badges">
     <span class="dashboard-badge dashboard-badge-info" id="dashboard-badge-snapshot">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -293,6 +310,7 @@
     </span>
   </div>
 
+  <!-- KPI Section: Деньги -->
   <div class="dashboard-section-divider">
     <div class="dashboard-section-divider-label">Деньги</div>
     <div class="dashboard-section-divider-line"></div>
@@ -326,6 +344,7 @@
     </div>
   </div>
 
+  <!-- KPI Section: Капитал -->
   <div class="dashboard-section-divider">
     <div class="dashboard-section-divider-label">Капитал (срез)</div>
     <div class="dashboard-section-divider-line"></div>
@@ -359,6 +378,7 @@
     </div>
   </div>
 
+  <!-- Charts Grid -->
   <div class="dashboard-section-divider">
     <div class="dashboard-section-divider-label">Графики</div>
     <div class="dashboard-section-divider-line"></div>
@@ -419,22 +439,30 @@
 (function() {
   'use strict';
 
+  // ─── Anti-race ───
   var dashboardIsLoading    = false;
   var dashboardQueuedReload = false;
+
+  // ─── Chart refs ───
   var _dbCharts = {};
 
+  // ─── Init ───
   function dashboardInit() {
-    var now = new Date();
-    document.getElementById('dashboard-date-to').value = now.toISOString().slice(0, 10);
+    var period = readPeriodFromUrlOrStorage();
+    document.getElementById('dashboard-date-from').value = period.dateFrom || '2023-01-01';
+    document.getElementById('dashboard-date-to').value   = period.dateTo   || new Date().toISOString().slice(0, 10);
     dashboardLoadData();
   }
 
+  // ─── Build params ───
   function dashboardBuildParams() {
     return {
-      dateTo: document.getElementById('dashboard-date-to').value || null
+      dateFrom: document.getElementById('dashboard-date-from').value || null,
+      dateTo:   document.getElementById('dashboard-date-to').value   || null
     };
   }
 
+  // ─── Load data ───
   function dashboardLoadData() {
     if (dashboardIsLoading) {
       dashboardQueuedReload = true;
@@ -480,8 +508,14 @@
       .dashboardApiDashboard(params);
   }
 
-  function dashboardApplyFilters() { dashboardLoadData(); }
+  function dashboardApplyFilters() {
+    var from = document.getElementById('dashboard-date-from').value || null;
+    var to   = document.getElementById('dashboard-date-to').value   || null;
+    setGlobalPeriod(from, to);
+    dashboardLoadData();
+  }
 
+  // ─── Badges ───
   function dashboardShowBadgesLoading() {
     var row = document.getElementById('dashboard-badges');
     if (row) row.innerHTML = '<span class="dashboard-badge dashboard-badge-info">Загрузка...</span>';
@@ -492,7 +526,8 @@
     if (!row) return;
 
     var snap   = meta.snapshotDate || null;
-    var period = meta.period       || null;
+    var pStart = meta.periodStart  || null;
+    var pEnd   = meta.periodEnd    || meta.snapshotDate || null;
     var warn   = meta.warning      || null;
 
     var html = '';
@@ -501,14 +536,14 @@
       html += '<span class="dashboard-badge dashboard-badge-info">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
-        'Капитал на дату среза: ' + dbEsc(snap) + '</span>';
+        'Капитал на дату среза: ' + dbEsc(snap.slice(0, 10)) + '</span>';
     }
 
-    if (period) {
+    if (pStart && pEnd) {
       html += '<span class="dashboard-badge dashboard-badge-period">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
-        'Период: ' + dbEsc(period) + '</span>';
+        'Период: ' + dbEsc(pStart.slice(0, 10)) + ' – ' + dbEsc(pEnd.slice(0, 10)) + '</span>';
     }
 
     if (warn) {
@@ -523,11 +558,12 @@
     row.innerHTML = html;
   }
 
+  // ─── Render KPIs ───
   function dashboardRenderKpis(kpis) {
     var ndp    = Number(kpis.netCashFlow   || 0);
     var buf    = Number(kpis.cashBuffer    || 0);
     var net    = Number(kpis.netProfit     || 0);
-    var margin = Number(kpis.netProfitMargin || 0);
+    var margin = Number(kpis.marginPct     || 0);
     var mr     = Number(kpis.marginPct     || 0);
     var equity = Number(kpis.equity        || 0);
     var liq    = Number(kpis.liquidity     || 0);
@@ -571,11 +607,12 @@
     el.className = 'dashboard-kpi-value' + (cls ? ' ' + cls : '');
   }
 
+  // ─── Render Charts ───
   function dashboardRenderCharts(charts) {
     dbDrawMonthlyBar('db-chart-ndp-monthly',  charts.netCashByMonth     || [], 'ЧДП',   '#00d9ff');
     dbDrawDirectionsBar('db-chart-ndp-dir',   charts.netCashByDirection || [], 'ЧДП');
     dbDrawRevenueMR('db-chart-revenue-mr',    charts.revenueMR          || []);
-    dbDrawGrossDir('db-chart-gross-dir',      charts.grossProfitByDir   || {});
+    dbDrawGrossDir('db-chart-gross-dir',      charts.grossProfitByDir       || {});
     dbDrawNetMargin('db-chart-net-margin',    charts.netProfitMargin    || []);
     dbDrawLine('db-chart-ar',                 charts.arDynamics         || [], 'ДЗ клиенты',    '#00d9ff');
     dbDrawLine('db-chart-ap',                 charts.apDynamics         || [], 'КЗ поставщики', '#ef4444');
@@ -794,7 +831,7 @@
     data.addColumn('string', 'Дата');
     data.addColumn('number', 'Фин. независимость');
     rows.forEach(function(r) {
-      data.addRow([String(r.date || r.label || ''), Number(r.value || r.ratio || 0)]);
+      data.addRow([String(r.date || r.label || ''), Number(r.value || 0)]);
     });
 
     var opts = dbChartOptions({
@@ -825,6 +862,7 @@
     return Object.assign({}, base, extra);
   }
 
+  // ─── Error state ───
   function dashboardShowError(msg) {
     var row = document.getElementById('dashboard-badges');
     if (row) {
@@ -847,9 +885,11 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ─── Public ───
   window.dashboardLoadData     = dashboardLoadData;
   window.dashboardApplyFilters = dashboardApplyFilters;
 
+  // ─── Boot ───
   dashboardInit();
 
 })();

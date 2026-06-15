@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>Финансовый дашборд</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Google Charts — loaded ONCE here, fragments use onChartsReady(cb) -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #0f172a;
+      --bg-secondary:  #1e293b;
+      --bg-card:       #1e293b;
+      --bg-hover:      #263348;
+      --border:        #334155;
+      --border-light:  #475569;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #64748b;
+      --accent:        #00d9ff;
+      --accent-dim:    rgba(0, 217, 255, 0.15);
+      --accent-glow:   0 0 18px rgba(0, 217, 255, 0.45);
+      --teal:          #14b8a6;
+      --purple:        #a855f7;
+      --red:           #ef4444;
+      --green:         #22c55e;
+      --yellow:        #f59e0b;
+      --sidebar-w:     260px;
+      --topbar-h:      64px;
+      --radius:        12px;
+      --radius-sm:     8px;
+      --transition:    0.2s ease;
+      --font-main:     'Manrope', 'Inter', 'Montserrat', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-main);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ─── Layout ─── */
+    .app-layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      transition: transform var(--transition), width var(--transition);
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+    }
+
+    .sidebar-brand-sub {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-nav {
+      padding: 12px 0;
+      flex: 1;
+    }
+
+    .sidebar-nav-label {
+      padding: 8px 20px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 20px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: 0;
+      border-left: 3px solid transparent;
+      transition: color var(--transition), background var(--transition), border-color var(--transition);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+      background: var(--accent-dim);
+      border-left-color: var(--accent);
+      box-shadow: inset 0 0 20px rgba(0, 217, 255, 0.06);
+    }
+
+    .nav-link.active .nav-icon {
+      filter: drop-shadow(0 0 6px rgba(0, 217, 255, 0.7));
+    }
+
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+
+    .nav-link.active .nav-icon {
+      opacity: 1;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar-footer-text {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Main Content ─── */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* ─── Top Bar ─── */
+    .topbar {
+      height: var(--topbar-h);
+      min-height: var(--topbar-h);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .topbar-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      transition: color var(--transition), background var(--transition);
+    }
+
+    .topbar-hamburger:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    .topbar-title {
+      flex: 1;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+
+    .btn-icon:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font-main);
+      cursor: pointer;
+      transition: opacity var(--transition), box-shadow var(--transition);
+      text-decoration: none;
+      box-shadow: var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.88;
+      box-shadow: 0 0 28px rgba(0, 217, 255, 0.6);
+    }
+
+    /* ─── Page Content Area ─── */
+    .page-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 24px;
+      background: var(--bg-primary);
+    }
+
+    /* ─── Overlay for mobile ─── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 99;
+    }
+
+    .sidebar-overlay.visible {
+      display: block;
+    }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+    /* ─── Responsive: 768px ─── */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .topbar-hamburger {
+        display: flex;
+      }
+
+      .page-content {
+        padding: 16px;
+      }
+    }
+
+    /* ─── Responsive: 480px ─── */
+    @media (max-width: 480px) {
+      .topbar {
+        padding: 0 12px;
+      }
+
+      .topbar-title {
+        font-size: 14px;
+      }
+
+      .page-content {
+        padding: 12px;
+      }
+
+      .btn-primary span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#0f172a" stroke-width="1.5" fill="#0f172a"/>
+            <path d="M2 17l10 5 10-5" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+            <path d="M2 12l10 5 10-5" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="sidebar-brand-sub">Finance OS</div>
+        </div>
+      </div>
+      <div class="sidebar-brand-title">Управление финансовым состоянием компании</div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-label">Модули</div>
+
+      <a href="#" class="nav-link <?= currentPage === 'dashboard' ? 'active' : '' ?>" id="nav-dashboard" onclick="navigateTo('dashboard'); return false;">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        Дэшборд
+      </a>
+
+      <a href="#" class="nav-link <?= currentPage === 'money' ? 'active' : '' ?>" id="nav-money" onclick="navigateTo('money'); return false;">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M12 6v2m0 8v2M9 10h3.5a1.5 1.5 0 0 1 0 3H9m3 0h.5a2 2 0 0 1 0 4H9"/>
+        </svg>
+        Деньги
+      </a>
+
+      <a href="#" class="nav-link <?= currentPage === 'capital' ? 'active' : '' ?>" id="nav-capital" onclick="navigateTo('capital'); return false;">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 3h18v4H3z" rx="1"/>
+          <path d="M3 11h18v4H3z" rx="1"/>
+          <path d="M3 19h11v2H3z" rx="1"/>
+          <circle cx="19" cy="20" r="2.5"/>
+          <path d="M17.5 20h-2"/>
+        </svg>
+        Капитал
+      </a>
+
+      <a href="#" class="nav-link <?= currentPage === 'profit' ? 'active' : '' ?>" id="nav-profit" onclick="navigateTo('profit'); return false;">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        Прибыль
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Finance Dashboard v1.0</div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <button class="topbar-hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Открыть меню">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="topbar-title" id="topbarTitle">
+        <?
+          var pageTitles = {
+            dashboard: 'Финансовый дашборд',
+            money:     'Деньги',
+            capital:   'Капитал',
+            profit:    'Прибыль'
+          };
+        ?>
+        <?= pageTitles[currentPage] || 'Финансовый дашборд' ?>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn-icon" id="refreshBtn" title="Обновить" onclick="refreshCurrentPage()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </button>
+
+        <button class="btn-icon" title="Настройки" onclick="openSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+
+        <button class="btn-primary" onclick="handleExit()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Выход</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content (injected fragment) -->
+    <div class="page-content" id="pageContent">
+      <?!= include(currentPage) ?>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────────────────────
+  // Google Charts — single load, shared onChartsReady(cb)
+  // ─────────────────────────────────────────────────────────────
+  var _chartsReady = false;
+  var _chartsCallbacks = [];
+  var _chartsTimedOut = false;
+
+  function onChartsReadyInternal() {
+    _chartsReady = true;
+    var cbs = _chartsCallbacks.slice();
+    _chartsCallbacks = [];
+    cbs.forEach(function(cb) {
+      try { cb(); } catch(e) { console.error('onChartsReady callback error:', e); }
+    });
+  }
+
+  /**
+   * Registers cb to run when Google Charts is ready.
+   * If already ready — calls cb immediately.
+   * Times out after 10s with a console warning.
+   */
+  function onChartsReady(cb) {
+    if (typeof cb !== 'function') return;
+    if (_chartsReady) {
+      try { cb(); } catch(e) { console.error('onChartsReady inline error:', e); }
+      return;
+    }
+    _chartsCallbacks.push(cb);
+    // Timeout guard
+    var timeoutId = setTimeout(function() {
+      if (_chartsReady) return;
+      _chartsTimedOut = true;
+      console.warn('[Charts] Timeout waiting for Google Charts. Running callback anyway.');
+      try { cb(); } catch(e) { console.error('onChartsReady timeout cb error:', e); }
+      // Remove from queue
+      var idx = _chartsCallbacks.indexOf(cb);
+      if (idx !== -1) _chartsCallbacks.splice(idx, 1);
+    }, 10000);
+    _ = timeoutId; // suppress lint
+  }
+
+  google.charts.load('current', {
+    packages: ['corechart', 'bar'],
+    language: 'ru',
+    callback: onChartsReadyInternal
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Navigation
+  // ─────────────────────────────────────────────────────────────
+  var _scriptUrl = '<?= scriptUrl ?>';
+  var _currentPage = '<?= currentPage ?>';
+
+  var _pageTitles = {
+    dashboard: 'Финансовый дашборд',
+    money:     'Деньги',
+    capital:   'Капитал',
+    profit:    'Прибыль'
+  };
+
+  function navigateTo(page) {
+    var allowed = ['dashboard', 'money', 'capital', 'profit'];
+    if (allowed.indexOf(page) === -1) return;
+    if (_scriptUrl) {
+      window.top.location.href = _scriptUrl + '?page=' + page;
+    } else {
+      // Fallback: resolve via script.run
+      google.script.run
+        .withSuccessHandler(function(url) {
+          if (url) window.top.location.href = url + '?page=' + page;
+        })
+        .withFailureHandler(function() {
+          console.warn('getScriptUrl failed, cannot navigate');
+        })
+        .getScriptUrl();
+    }
+    closeSidebar();
+  }
+
+  function refreshCurrentPage() {
+    var btn = document.getElementById('refreshBtn');
+    if (btn) {
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+      setTimeout(function() {
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+      }, 1200);
+    }
+    // Dispatch to the active module's reload
+    var reloadFnMap = {
+      money:     typeof cashLoadData     === 'function' ? cashLoadData     : null,
+      profit:    typeof profitLoadData   === 'function' ? profitLoadData   : null,
+      capital:   typeof capitalLoadData  === 'function' ? capitalLoadData  : null,
+      dashboard: typeof dashboardLoadData=== 'function' ? dashboardLoadData: null
+    };
+    var fn = reloadFnMap[_currentPage];
+    if (fn) {
+      try { fn(); } catch(e) { console.error('Refresh error:', e); }
+    } else {
+      window.location.reload();
+    }
+  }
+
+  function openSettings() {
+    // Placeholder — can be extended
+    console.info('Settings not implemented yet');
+  }
+
+  function handleExit() {
+    try {
+      google.script.host.close();
+    } catch(e) {
+      window.close();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Sidebar (mobile)
+  // ─────────────────────────────────────────────────────────────
+  function toggleSidebar() {
+    var sidebar  = document.getElementById('sidebar');
+    var overlay  = document.getElementById('sidebarOverlay');
+    var isOpen   = sidebar.classList.contains('open');
+    if (isOpen) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+    } else {
+      sidebar.classList.add('open');
+      overlay.classList.add('visible');
+    }
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('visible');
+  }
+
+  // Close sidebar on ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeSidebar();
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Global error display utility (for fragments)
+  // ─────────────────────────────────────────────────────────────
+  function showGlobalError(containerId, message) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px;padding:20px;' +
+      'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);' +
+      'border-radius:10px;color:#fca5a5;font-size:14px;">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">' +
+      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
+      '</svg>' +
+      '<span>' + escHtml(message) + '</span></div>';
+  }
+
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Shared number formatters (used by ALL fragments)
+  // ─────────────────────────────────────────────────────────────
+  function formatMillions(n) {
+    var v = Number(n || 0);
+    if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + ' млн ₽';
+    if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(0) + ' тыс ₽';
+    return v.toFixed(0) + ' ₽';
+  }
+
+  function formatMillionsChart(n) {
+    var v = Number(n || 0);
+    return (v / 1e6).toFixed(1);
+  }
+
+  function formatPercent(n, decimals) {
+    var d = (decimals === undefined) ? 1 : decimals;
+    return Number(n || 0).toFixed(d) + '%';
+  }
+
+  function formatCurrencyFull(n) {
+    var v = Number(n || 0);
+    var abs = Math.abs(v).toFixed(2);
+    var parts = abs.split('.');
+    var intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return (v < 0 ? '−' : '') + intPart + ',' + parts[1] + ' ₽';
+  }
+
+  function formatMultiplier(n) {
+    return Number(n || 0).toFixed(2) + 'x';
+  }
+</script>
+
+</body>
+</html>

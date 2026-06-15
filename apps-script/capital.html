@@ -4,6 +4,7 @@
 
   .capital-page { display: flex; flex-direction: column; gap: 20px; }
 
+  /* Filters */
   .capital-filters {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -80,6 +81,7 @@
   .capital-btn-apply:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(0,217,255,0.55); }
   .capital-btn-apply:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
+  /* Snapshot badge */
   .capital-badge-row {
     display: flex;
     align-items: center;
@@ -111,6 +113,7 @@
     border-color: rgba(245,158,11,0.3);
   }
 
+  /* KPI Cards */
   .capital-kpis {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -174,6 +177,7 @@
     margin-top: 2px;
   }
 
+  /* Charts grid */
   .capital-charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -212,6 +216,7 @@
     height: 100%; color: var(--text-muted); font-size: 12px;
   }
 
+  /* Loading */
   .capital-loading {
     display: flex; align-items: center; justify-content: center;
     gap: 12px; padding: 40px; color: var(--text-muted); font-size: 13px;
@@ -227,6 +232,7 @@
 
   @keyframes capitalSpin { to { transform: rotate(360deg); } }
 
+  /* Responsive */
   @media (max-width: 768px) {
     .capital-kpis { grid-template-columns: 1fr 1fr 1fr; }
     .capital-charts-grid { grid-template-columns: 1fr; }
@@ -241,6 +247,7 @@
 
 <div class="capital-page" id="capital-page">
 
+  <!-- Filters -->
   <div class="capital-filters">
     <div class="capital-filters-row">
       <div class="capital-filter-group">
@@ -251,6 +258,7 @@
     </div>
   </div>
 
+  <!-- Snapshot Badge -->
   <div class="capital-badge-row" id="capital-badge-row">
     <span class="capital-badge capital-badge-info" id="capital-snapshot-badge">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -260,6 +268,7 @@
     </span>
   </div>
 
+  <!-- KPI Cards -->
   <div class="capital-kpis" id="capital-kpis">
     <div class="capital-kpi-card card-equity">
       <div class="capital-kpi-label">Собственный капитал</div>
@@ -278,6 +287,7 @@
     </div>
   </div>
 
+  <!-- Charts Grid -->
   <div class="capital-charts-grid" id="capital-charts-grid">
 
     <div class="capital-chart-card">
@@ -323,22 +333,28 @@
 (function() {
   'use strict';
 
+  // ─── Anti-race ───
   var capitalIsLoading    = false;
   var capitalQueuedReload = false;
+
+  // ─── Chart refs ───
   var _capitalCharts = {};
 
+  // ─── Init ───
   function capitalInit() {
-    var now = new Date();
-    document.getElementById('capital-date-to').value = now.toISOString().slice(0, 10);
+    var period = readPeriodFromUrlOrStorage();
+    document.getElementById('capital-date-to').value = period.dateTo || new Date().toISOString().slice(0, 10);
     capitalLoadData();
   }
 
+  // ─── Build params ───
   function capitalBuildParams() {
     return {
       dateTo: document.getElementById('capital-date-to').value || null
     };
   }
 
+  // ─── Load data ───
   function capitalLoadData() {
     if (capitalIsLoading) {
       capitalQueuedReload = true;
@@ -384,8 +400,14 @@
       .capitalApiCapital(params);
   }
 
-  function capitalApplyFilters() { capitalLoadData(); }
+  function capitalApplyFilters() {
+    var stored = getGlobalPeriod();
+    var to = document.getElementById('capital-date-to').value || null;
+    setGlobalPeriod(stored.dateFrom, to);
+    capitalLoadData();
+  }
 
+  // ─── Badge ───
   function capitalRenderBadge(meta) {
     var snap = meta.snapshotDate || null;
     var warn = meta.warning || null;
@@ -415,6 +437,7 @@
     if (badge) badge.textContent = text;
   }
 
+  // ─── Render KPIs ───
   function capitalRenderKpis(kpis) {
     var equity        = Number(kpis.equity        || 0);
     var liquidity     = Number(kpis.liquidity     || 0);
@@ -440,6 +463,7 @@
     }
   }
 
+  // ─── Render Charts ───
   function capitalRenderCharts(charts) {
     capitalDrawPie('capital-chart-assets-pie',       charts.assetsStructure      || [], 'Активы');
     capitalDrawPie('capital-chart-liabilities-pie',  charts.liabilitiesStructure || [], 'Пассивы');
@@ -599,6 +623,7 @@
     return Object.assign({}, base, extra);
   }
 
+  // ─── Error state ───
   function capitalShowError(msg) {
     capitalShowBadge('Ошибка загрузки', 'warn');
     ['capital-kpi-equity','capital-kpi-liquidity','capital-kpi-independence'].forEach(function(id) {
@@ -616,9 +641,11 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ─── Public ───
   window.capitalLoadData     = capitalLoadData;
   window.capitalApplyFilters = capitalApplyFilters;
 
+  // ─── Boot ───
   capitalInit();
 
 })();

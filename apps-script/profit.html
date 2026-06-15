@@ -475,12 +475,9 @@
 
   // ─── Init ───
   function profitInit() {
-    var now  = new Date();
-    var y    = now.getFullYear();
-    var from = y + '-01-01';
-    var to   = now.toISOString().slice(0, 10);
-    document.getElementById('profit-date-from').value = from;
-    document.getElementById('profit-date-to').value   = to;
+    var period = readPeriodFromUrlOrStorage();
+    document.getElementById('profit-date-from').value = period.dateFrom || '2023-01-01';
+    document.getElementById('profit-date-to').value   = period.dateTo   || new Date().toISOString().slice(0, 10);
     profitLoadData();
   }
 
@@ -558,13 +555,21 @@
       .profitApiProfit(params);
   }
 
-  function profitApplyFilters() { profitLoadData(); }
+  function profitApplyFilters() {
+    var from = document.getElementById('profit-date-from').value || null;
+    var to   = document.getElementById('profit-date-to').value   || null;
+    setGlobalPeriod(from, to);
+    profitLoadData();
+  }
 
   function profitResetFilters() {
     var now = new Date();
-    var y   = now.getFullYear();
-    document.getElementById('profit-date-from').value = y + '-01-01';
+    document.getElementById('profit-date-from').value = '2023-01-01';
     document.getElementById('profit-date-to').value   = now.toISOString().slice(0, 10);
+    setGlobalPeriod(
+      document.getElementById('profit-date-from').value,
+      document.getElementById('profit-date-to').value
+    );
     var dirSel = document.getElementById('profit-directions');
     var secSel = document.getElementById('profit-sections');
     if (dirSel) for (var i = 0; i < dirSel.options.length; i++) dirSel.options[i].selected = false;

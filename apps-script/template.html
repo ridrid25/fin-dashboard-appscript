@@ -348,6 +348,101 @@
       }
     }
   </style>
+
+  <!-- Global period state — must be declared before page fragments execute -->
+  <script>
+    (function() {
+      'use strict';
+
+      var PERIOD_KEY_FROM = 'financeDashboard.dateFrom';
+      var PERIOD_KEY_TO   = 'financeDashboard.dateTo';
+      var DEFAULT_FROM    = '2023-01-01';
+
+      function todayIso() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function isIsoDate(value) {
+        return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim());
+      }
+
+      function storageGet(key) {
+        try { return window.localStorage.getItem(key); } catch(e) { return null; }
+      }
+
+      function storageSet(key, value) {
+        try {
+          if (value === null || value === undefined || value === '') {
+            window.localStorage.removeItem(key);
+          } else {
+            window.localStorage.setItem(key, String(value));
+          }
+        } catch(e) {}
+      }
+
+      function readUrlPeriod() {
+        var result = { dateFrom: null, dateTo: null };
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          var from = params.get('dateFrom');
+          var to   = params.get('dateTo');
+          if (isIsoDate(from)) result.dateFrom = from;
+          if (isIsoDate(to))   result.dateTo   = to;
+        } catch(e) {}
+        return result;
+      }
+
+      function getGlobalPeriod() {
+        var from = storageGet(PERIOD_KEY_FROM);
+        var to   = storageGet(PERIOD_KEY_TO);
+        return {
+          dateFrom: isIsoDate(from) ? from : DEFAULT_FROM,
+          dateTo:   isIsoDate(to)   ? to   : todayIso()
+        };
+      }
+
+      function setGlobalPeriod(dateFrom, dateTo) {
+        var safeFrom = isIsoDate(dateFrom) ? dateFrom : DEFAULT_FROM;
+        var safeTo   = isIsoDate(dateTo)   ? dateTo   : todayIso();
+        storageSet(PERIOD_KEY_FROM, safeFrom);
+        storageSet(PERIOD_KEY_TO,   safeTo);
+        return { dateFrom: safeFrom, dateTo: safeTo };
+      }
+
+      function readPeriodFromUrlOrStorage() {
+        var urlPeriod = readUrlPeriod();
+        var stored    = getGlobalPeriod();
+        var period    = {
+          dateFrom: urlPeriod.dateFrom || stored.dateFrom || DEFAULT_FROM,
+          dateTo:   urlPeriod.dateTo   || stored.dateTo   || todayIso()
+        };
+        setGlobalPeriod(period.dateFrom, period.dateTo);
+        return period;
+      }
+
+      function applyGlobalPeriodToUrl(url) {
+        var period = readPeriodFromUrlOrStorage();
+        try {
+          var out = new URL(url, window.location.href);
+          out.searchParams.set('dateFrom', period.dateFrom);
+          out.searchParams.set('dateTo',   period.dateTo);
+          return out.toString();
+        } catch(e) {
+          var glue = url.indexOf('?') === -1 ? '?' : '&';
+          return url + glue + 'dateFrom=' + encodeURIComponent(period.dateFrom) +
+                 '&dateTo=' + encodeURIComponent(period.dateTo);
+        }
+      }
+
+      window.getGlobalPeriod = getGlobalPeriod;
+      window.setGlobalPeriod = setGlobalPeriod;
+      window.readPeriodFromUrlOrStorage = readPeriodFromUrlOrStorage;
+      window.applyGlobalPeriodToUrl = applyGlobalPeriodToUrl;
+
+      readPeriodFromUrlOrStorage();
+    })();
+  </script>
+
 </head>
 <body>
 
@@ -543,12 +638,12 @@
     var allowed = ['dashboard', 'money', 'capital', 'profit'];
     if (allowed.indexOf(page) === -1) return;
     if (_scriptUrl) {
-      window.top.location.href = _scriptUrl + '?page=' + page;
+      window.top.location.href = applyGlobalPeriodToUrl(_scriptUrl + '?page=' + page);
     } else {
       // Fallback: resolve via script.run
       google.script.run
         .withSuccessHandler(function(url) {
-          if (url) window.top.location.href = url + '?page=' + page;
+          if (url) window.top.location.href = applyGlobalPeriodToUrl(url + '?page=' + page);
         })
         .withFailureHandler(function() {
           console.warn('getScriptUrl failed, cannot navigate');

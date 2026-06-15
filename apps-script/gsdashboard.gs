@@ -26,6 +26,7 @@
  *
  * @param {Object} params
  *   params.dateTo  {string} — upper bound date (YYYY-MM-DD or DD.MM.YYYY)
+ *   params.dateFrom {string} — lower bound date (optional)
  *
  * @returns {Object} prepareResponse({status, data:{kpis, charts, tables, meta}, error})
  */
@@ -51,9 +52,15 @@ function dashboardApiDashboard(params) {
     }
     logInfo('dashboardApiDashboard: snapshotDate=' + snapshotDate.toISOString());
 
-    // ── 3. Period: 1 Jan of snapshotDate's year → snapshotDate ─
-    var periodStart = new Date(snapshotDate.getFullYear(), 0, 1); // Jan 1
-    periodStart.setHours(0, 0, 0, 0);
+    // ── 3. Period: dateFrom (if valid) or 1 Jan of snapshot year → snapshotDate ─
+    var dateFrom    = parseDate(params.dateFrom);
+    var periodStart;
+    if (dateFrom && dateFrom.getTime() <= endOfDay(snapshotDate).getTime()) {
+      periodStart = startOfDay(dateFrom);
+    } else {
+      periodStart = new Date(snapshotDate.getFullYear(), 0, 1);
+      periodStart.setHours(0, 0, 0, 0);
+    }
     var periodEnd   = endOfDay(snapshotDate);
 
     logInfo('dashboardApiDashboard: periodStart=' + periodStart + ' periodEnd=' + periodEnd);
@@ -193,6 +200,7 @@ function dashboardApiDashboard(params) {
 
     // ── 21. Meta ─────────────────────────────────────────────
     var meta = {
+      dateFrom:      periodStart.toISOString(),
       dateTo:        dateTo.toISOString(),
       snapshotDate:  snapshotDate.toISOString(),
       periodStart:   periodStart.toISOString(),
@@ -257,9 +265,6 @@ function dashboardApiDashboard(params) {
 
 /**
  * Builds sorted 'YYYY-MM' month list between two dates.
- * @param {Date} from
- * @param {Date} to
- * @returns {string[]}
  */
 function dashboardBuildMonthList(from, to) {
   var months = [];
@@ -274,8 +279,6 @@ function dashboardBuildMonthList(from, to) {
 
 /**
  * Formats a Date as DD.MM.YYYY string.
- * @param {Date} d
- * @returns {string}
  */
 function dashboardFormatDate(d) {
   if (!d) return '(нет даты)';
@@ -288,13 +291,8 @@ function dashboardFormatDate(d) {
 
 /**
  * Normalises and filters Money rows for the dashboard period.
- * Returns objects with _date, _income, _expense, _amount, _sectionOdds, _direction.
- * Expense is stored as negative number.
- *
- * @param {Object[]} rawRows   Raw objects from readSheetAsObjects
- * @param {Date}     fromBound
- * @param {Date}     toBound
- * @returns {Object[]}
+ * Reads 'Сумма' + 'Вид операции' — no separate Приход/Расход columns.
+ * Expense stored as negative number.
  */
 function dashboardNormaliseMoneyRows(rawRows, fromBound, toBound) {
   var result = [];
@@ -304,9 +302,19 @@ function dashboardNormaliseMoneyRows(rawRows, fromBound, toBound) {
     var t = d.getTime();
     if (t < fromBound.getTime() || t > toBound.getTime()) return;
 
-    var income  = normalizeValue(row['Приход']);
-    var expense = normalizeValue(row['Расход']);
-    var expenseSigned = expense > 0 ? -expense : expense;
+    var amountRaw = normalizeValue(row['Сумма']);
+    var operation = String(row['Вид операции'] || '').trim();
+    var income, expenseSigned;
+    if (operation === 'Приход') {
+      income        = Math.abs(amountRaw);
+      expenseSigned = 0;
+    } else if (operation === 'Расход') {
+      income        = 0;
+      expenseSigned = -Math.abs(amountRaw);
+    } else {
+      income        = 0;
+      expenseSigned = 0;
+    }
 
     result.push({
       _date:        d,
@@ -314,7 +322,7 @@ function dashboardNormaliseMoneyRows(rawRows, fromBound, toBound) {
       _expense:     expenseSigned,
       _amount:      income + expenseSigned,
       _sectionOdds: String(row['Раздел ОДДС'] || '').trim(),
-      _operation:   String(row['Вид операции'] || '').trim(),
+      _operation:   operation,
       _article:     String(row['Статья']       || '').trim(),
       _account:     String(row['Счет']         || '').trim(),
       _counterparty:String(row['Контрагент']   || '').trim(),
@@ -326,12 +334,6 @@ function dashboardNormaliseMoneyRows(rawRows, fromBound, toBound) {
 
 /**
  * Normalises and filters Profit rows for the dashboard period.
- * Returns objects with _date, _sectionId, _amount, _direction.
- *
- * @param {Object[]} rawRows
- * @param {Date}     fromBound
- * @param {Date}     toBound
- * @returns {Object[]}
  */
 function dashboardNormaliseProfitRows(rawRows, fromBound, toBound) {
   var result = [];
@@ -358,10 +360,7 @@ function dashboardNormaliseProfitRows(rawRows, fromBound, toBound) {
 }
 
 /**
- * Builds {month, income, expense, net}[] chart data from normalised money rows.
- * @param {Object[]} rows   Normalised money rows (already filtered for KPI, excl. Перемещение)
- * @param {string[]} months
- * @returns {Object[]}
+ * Builds {month, income, expense, net}[] chart data.
  */
 function dashboardBuildMoneyByMonth(rows, months) {
   var incMap = {};
@@ -384,8 +383,6 @@ function dashboardBuildMoneyByMonth(rows, months) {
 
 /**
  * Builds {direction, income, expense, net}[] chart data.
- * @param {Object[]} rows
- * @returns {Object[]}
  */
 function dashboardBuildMoneyByDirection(rows) {
   var map = new Map();
@@ -410,10 +407,7 @@ function dashboardBuildMoneyByDirection(rows) {
 }
 
 /**
- * Builds {month, revenue, marginPct}[] chart data.
- * @param {Object[]} rows   Normalised profit rows
- * @param {string[]} months
- * @returns {Object[]}
+ * Builds {month, revenue, grossProfit, marginPct}[] chart data.
  */
 function dashboardBuildRevenueMR(rows, months) {
   var revMap  = {};
@@ -439,8 +433,6 @@ function dashboardBuildRevenueMR(rows, months) {
 
 /**
  * Returns unique direction values from profit rows.
- * @param {Object[]} rows
- * @returns {string[]}
  */
 function dashboardGetUniqueDirections(rows) {
   var seen = {};
@@ -457,10 +449,6 @@ function dashboardGetUniqueDirections(rows) {
 
 /**
  * Builds gross profit by direction by month chart data.
- * @param {Object[]} rows
- * @param {string[]} months
- * @param {string[]} directions
- * @returns {Object[]}
  */
 function dashboardBuildGrossProfitByDir(rows, months, directions) {
   var matrix = {};
@@ -489,9 +477,6 @@ function dashboardBuildGrossProfitByDir(rows, months, directions) {
 
 /**
  * Builds {month, netProfit, marginPct}[] chart data.
- * @param {Object[]} rows
- * @param {string[]} months
- * @returns {Object[]}
  */
 function dashboardBuildNetProfitMargin(rows, months) {
   var npMap  = {};

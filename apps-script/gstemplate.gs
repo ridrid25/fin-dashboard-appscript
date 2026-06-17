@@ -1,20 +1,32 @@
 /**
  * gstemplate.gs — Router and template helpers for the Financial Dashboard Web App.
- * Handles doGet, page routing, and template includes.
+ * Handles doGet, JSON API routing, page routing, and template includes.
  */
 
 /**
  * Entry point for the Web App.
- * Reads ?page=... query param; allowed pages: dashboard, money, capital, profit.
- * Falls back to 'dashboard' for unknown or missing values.
+ *
+ * Modes:
+ *   1. JSON API mode: ?api=dashboard|money|capital|profit
+ *   2. HTML UI mode: ?page=dashboard|money|capital|profit
+ *
+ * JSON mode is used by the Lovable / React frontend.
+ * HTML mode keeps the old Apps Script interface working.
+ *
  * @param {Object} e - Event object from Apps Script doGet trigger.
- * @returns {HtmlOutput}
+ * @returns {HtmlOutput|TextOutput}
  */
 function doGet(e) {
   try {
+    var params = (e && e.parameter) || {};
+
+    if (params.api) {
+      return handleJsonApiRequest_(params);
+    }
+
     var allowedPages = ['dashboard', 'money', 'capital', 'profit'];
-    var requestedPage = (e && e.parameter && e.parameter.page)
-      ? String(e.parameter.page).toLowerCase().trim()
+    var requestedPage = params.page
+      ? String(params.page).toLowerCase().trim()
       : 'dashboard';
 
     if (allowedPages.indexOf(requestedPage) === -1) {
@@ -40,6 +52,38 @@ function doGet(e) {
       encodeHtmlEntities(String(err.message || err)) + '</p>'
     );
   }
+}
+
+/**
+ * Routes JSON API requests for the React/Lovable frontend.
+ * @param {Object} params - e.parameter from doGet.
+ * @returns {TextOutput}
+ */
+function handleJsonApiRequest_(params) {
+  var out;
+  try {
+    var api = String(params.api || '').toLowerCase().trim();
+    logInfo('handleJsonApiRequest_: api=' + api + ' params=' + JSON.stringify(params));
+
+    if (api === 'dashboard') {
+      out = dashboardApiDashboard(params);
+    } else if (api === 'money') {
+      out = cashApiMoney(params);
+    } else if (api === 'profit') {
+      out = profitApiProfit(params);
+    } else if (api === 'capital') {
+      out = capitalApiCapital(params);
+    } else {
+      out = createErrorResponse('Unknown api: ' + api);
+    }
+  } catch (err) {
+    logError('handleJsonApiRequest_ failed', err);
+    out = createErrorResponse('Ошибка API: ' + (err.message || String(err)));
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify(prepareResponse(out)))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**

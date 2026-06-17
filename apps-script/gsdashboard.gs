@@ -3,11 +3,11 @@
  * Prefix: dashboard
  * Public entry: dashboardApiDashboard(params)
  *
- * Logic summary:
- *  1. snapshotDate = max Capital date ≤ dateTo
- *  2. periodStart  = 1 January of snapshotDate's year
- *  3. Money and Profit data: periodStart → snapshotDate
- *  4. Warning badge if dateTo > snapshotDate (by design, not a bug)
+ * Correct live API logic:
+ *  1. Money and Profit are calculated strictly by selected dateFrom → dateTo.
+ *  2. Capital is calculated by the latest available snapshotDate ≤ dateTo.
+ *  3. If capital snapshotDate is earlier than dateTo, dashboard returns a warning,
+ *     but Money and Profit still stay inside the selected period.
  *
  * KPIs:
  *  - ЧДП, Cash Buffer (from Money, excl. 5.Перемещение)
@@ -26,7 +26,7 @@
  *
  * @param {Object} params
  *   params.dateTo  {string} — upper bound date (YYYY-MM-DD or DD.MM.YYYY)
- *   params.dateFrom {string} — lower bound date (optional)
+ *   params.dateFrom {string} — lower bound date (optional, defaults to Jan 1 of dateTo year)
  *
  * @returns {Object} prepareResponse({status, data:{kpis, charts, tables, meta}, error})
  */
@@ -36,13 +36,23 @@ function dashboardApiDashboard(params) {
 
     params = params || {};
 
-    // ── 1. Parse dateTo ──────────────────────────────────────
+    // ── 1. Parse selected period ───────────────────────────────
     var dateTo = parseDate(params.dateTo);
     if (!dateTo) {
       return createErrorResponse('Параметр dateTo обязателен и должен быть корректной датой.');
     }
 
-    // ── 2. Find snapshotDate in Capital ──────────────────────
+    var dateFrom = parseDate(params.dateFrom);
+    if (!dateFrom || dateFrom.getTime() > endOfDay(dateTo).getTime()) {
+      dateFrom = new Date(dateTo.getFullYear(), 0, 1);
+    }
+
+    var periodStart = startOfDay(dateFrom);
+    var periodEnd   = endOfDay(dateTo);
+
+    logInfo('dashboardApiDashboard: selected periodStart=' + periodStart + ' periodEnd=' + periodEnd);
+
+    // ── 2. Find capital snapshotDate, but do not change selected period ─
     var snapshotDate = capitalGetSnapshotDate(dateTo);
     if (!snapshotDate) {
       return createErrorResponse(
@@ -50,29 +60,17 @@ function dashboardApiDashboard(params) {
         dashboardFormatDate(dateTo) + ' или ранее.'
       );
     }
-    logInfo('dashboardApiDashboard: snapshotDate=' + snapshotDate.toISOString());
+    logInfo('dashboardApiDashboard: capital snapshotDate=' + snapshotDate.toISOString());
 
-    // ── 3. Period: dateFrom (if valid) or 1 Jan of snapshot year → snapshotDate ─
-    var dateFrom    = parseDate(params.dateFrom);
-    var periodStart;
-    if (dateFrom && dateFrom.getTime() <= endOfDay(snapshotDate).getTime()) {
-      periodStart = startOfDay(dateFrom);
-    } else {
-      periodStart = new Date(snapshotDate.getFullYear(), 0, 1);
-      periodStart.setHours(0, 0, 0, 0);
-    }
-    var periodEnd   = endOfDay(snapshotDate);
-
-    logInfo('dashboardApiDashboard: periodStart=' + periodStart + ' periodEnd=' + periodEnd);
-
-    // ── 4. Warning if dateTo > snapshotDate ──────────────────
+    // ── 3. Warning if capital snapshot is earlier than selected dateTo ───
     var warning = null;
-    if (endOfDay(dateTo).getTime() > endOfDay(snapshotDate).getTime()) {
-      warning = 'Капитал на дату среза: ' + dashboardFormatDate(snapshotDate) +
-                '. Данные за период после этой даты в сводные KPI не входят — это ожидаемое поведение.';
+    if (endOfDay(snapshotDate).getTime() < periodEnd.getTime()) {
+      warning = 'Капитал показан по последнему доступному срезу: ' + dashboardFormatDate(snapshotDate) +
+                '. Деньги и прибыль рассчитаны за выбранный период: ' +
+                dashboardFormatDate(periodStart) + ' — ' + dashboardFormatDate(dateTo) + '.';
     }
 
-    // ── 5. Load all raw data ─────────────────────────────────
+    // ── 4. Load all raw data ──────────────────────────────────
     var moneyRows  = readSheetAsObjects(CONFIG.SHEETS.MONEY,  'rangecash');
     var profitRows = readSheetAsObjects(CONFIG.SHEETS.PROFIT, 'rangeprofit');
     var capitalAllRows = readSheetAsObjects(CONFIG.SHEETS.CAPITAL, 'rangeequity');
@@ -87,28 +85,24 @@ function dashboardApiDashboard(params) {
       return createErrorResponse('Лист "' + CONFIG.SHEETS.CAPITAL + '" пуст или недоступен.');
     }
 
-    // ── 6. Normalise Money rows ──────────────────────────────
+    // ── 5. Normalise Money rows by selected period ─────────────
     var normMoneyRows = dashboardNormaliseMoneyRows(moneyRows, periodStart, periodEnd);
 
-    // ── 7. Normalise Profit rows ─────────────────────────────
+    // ── 6. Normalise Profit rows by selected period ────────────
     var normProfitRows = dashboardNormaliseProfitRows(profitRows, periodStart, periodEnd);
 
-    // ── 8. Capital KPIs ──────────────────────────────────────
-    var capitalKpiEnd   = capitalCalcKpisForDate(snapshotDate);
+    // ── 7. Capital KPIs by latest snapshot <= dateTo ───────────
+    var capitalKpiEnd = capitalCalcKpisForDate(snapshotDate);
 
-    // Start of year snapshot: find max Capital date ≤ Jan 1 of snapshotDate's year
-    var yearStart = new Date(snapshotDate.getFullYear(), 0, 1);
-    yearStart.setHours(0, 0, 0, 0);
-    var snapshotStart = capitalGetSnapshotDate(yearStart);
+    var snapshotStart = capitalGetSnapshotDate(periodStart);
     var capitalKpiStart = snapshotStart
       ? capitalCalcKpisForDate(snapshotStart)
-      : { equity: 0, currentAssets: 0, currentLiabilities: 0, totalAssets: 0,
-          liquidity: 0, finIndependence: 0, arValue: 0, apValue: 0 };
+      : capitalKpiEnd;
 
     logInfo('dashboardApiDashboard: capitalKpiStart equity=' + capitalKpiStart.equity +
             ' capitalKpiEnd equity=' + capitalKpiEnd.equity);
 
-    // ── 9. Money KPIs ────────────────────────────────────────
+    // ── 8. Money KPIs ─────────────────────────────────────────
     var excludeSection = CONFIG.CASH.excludeOddsSection;
     var moneyKpiRows   = normMoneyRows.filter(function(r) {
       return r._sectionOdds !== excludeSection;
@@ -124,7 +118,7 @@ function dashboardApiDashboard(params) {
     var avgDailyExpense = Math.abs(totalExpense) / periodDays;
     var cashBuffer = avgDailyExpense > 0 ? netCashFlow / avgDailyExpense : 0;
 
-    // ── 10. Profit KPIs ──────────────────────────────────────
+    // ── 9. Profit KPIs ────────────────────────────────────────
     var sectionSums = {};
     for (var si = 1; si <= 8; si++) { sectionSums[si] = 0; }
     normProfitRows.forEach(function(r) {
@@ -142,45 +136,47 @@ function dashboardApiDashboard(params) {
     }, 0);
     var netProfitMargin = revenue !== 0 ? (netProfit / revenue) * 100 : 0;
 
-    // ── 11. ROE ──────────────────────────────────────────────
+    // ── 10. ROE ───────────────────────────────────────────────
     var avgEquity = (capitalKpiStart.equity + capitalKpiEnd.equity) / 2;
     var roe = avgEquity !== 0 ? (netProfit / avgEquity) * 100 : 0;
 
-    // ── 12. Receivables (ДЗ) turnover ────────────────────────
+    // ── 11. Receivables (ДЗ) turnover ─────────────────────────
     var arStart = capitalKpiStart.arValue;
     var arEnd   = capitalKpiEnd.arValue;
     var avgAR   = (arStart + arEnd) / 2;
     var arTurns = avgAR !== 0 ? revenue / avgAR : 0;
     var arDays  = arTurns !== 0 ? 365 / arTurns : 0;
 
-    // ── 13. Payables (КЗ) turnover ───────────────────────────
+    // ── 12. Payables (КЗ) turnover ────────────────────────────
     var apStart  = Math.abs(capitalKpiStart.apValue);
     var apEnd    = Math.abs(capitalKpiEnd.apValue);
     var avgAP    = (apStart + apEnd) / 2;
     var apTurns  = avgAP !== 0 ? Math.abs(costOfGoods) / avgAP : 0;
     var apDays   = apTurns !== 0 ? 365 / apTurns : 0;
 
-    // ── 14. Month list ────────────────────────────────────────
+    // ── 13. Month list from selected period ───────────────────
     var months = dashboardBuildMonthList(periodStart, periodEnd);
 
-    // ── 15. Chart: ЧДП по месяцам ─────────────────────────────
+    // ── 14. Chart: ЧДП по месяцам ─────────────────────────────
     var chartNetCashByMonth = dashboardBuildMoneyByMonth(moneyKpiRows, months);
 
-    // ── 16. Chart: ЧДП по направлениям ───────────────────────
+    // ── 15. Chart: ЧДП по направлениям ────────────────────────
     var chartNetCashByDirection = dashboardBuildMoneyByDirection(moneyKpiRows);
 
-    // ── 17. Chart: Выручка + MR% ─────────────────────────────
+    // ── 16. Chart: Выручка + MR% ──────────────────────────────
     var chartRevenueMR = dashboardBuildRevenueMR(normProfitRows, months);
 
-    // ── 18. Chart: Валовая прибыль по направлениям ───────────
+    // ── 17. Chart: Валовая прибыль по направлениям ────────────
     var profitDirections = dashboardGetUniqueDirections(normProfitRows);
     var chartGrossProfitByDir = dashboardBuildGrossProfitByDir(normProfitRows, months, profitDirections);
 
-    // ── 19. Chart: ЧП + рентабельность по месяцам ────────────
+    // ── 18. Chart: ЧП + рентабельность по месяцам ─────────────
     var chartNetProfitMargin = dashboardBuildNetProfitMargin(normProfitRows, months);
 
-    // ── 20. Chart: Динамика ДЗ/КЗ ────────────────────────────
-    var allSnapshotDates = capitalGetAllSnapshotDates();
+    // ── 19. Capital charts: only snapshots <= selected dateTo ──
+    var allSnapshotDates = capitalGetAllSnapshotDates().filter(function(sd) {
+      return sd.getTime() <= periodEnd.getTime();
+    });
     var chartARDynamics  = [];
     var chartAPDynamics  = [];
     var chartCapStructure = [];
@@ -198,13 +194,13 @@ function dashboardApiDashboard(params) {
       chartFinIndep.push({ date: sdIso, ratio: sdKpi.finIndependence });
     });
 
-    // ── 21. Meta ─────────────────────────────────────────────
+    // ── 20. Meta ──────────────────────────────────────────────
     var meta = {
       dateFrom:      periodStart.toISOString(),
       dateTo:        dateTo.toISOString(),
       snapshotDate:  snapshotDate.toISOString(),
       periodStart:   periodStart.toISOString(),
-      periodEnd:     snapshotDate.toISOString(),
+      periodEnd:     dateTo.toISOString(),
       warning:       warning
     };
 
@@ -289,6 +285,15 @@ function dashboardFormatDate(d) {
          (mm < 10 ? '0' + mm : mm) + '.' + yyyy;
 }
 
+function dashboardNormalizeOperationType(operation, rawAmount) {
+  var op = String(operation || '').trim().toLowerCase();
+  if (/приход|поступ|зачисл|выручк|доход/.test(op)) return 'Приход';
+  if (/расход|платеж|платёж|списан|оплат|затрат/.test(op)) return 'Расход';
+  if (rawAmount < 0) return 'Расход';
+  if (rawAmount > 0) return 'Приход';
+  return '';
+}
+
 /**
  * Normalises and filters Money rows for the dashboard period.
  * Reads 'Сумма' + 'Вид операции' — no separate Приход/Расход columns.
@@ -303,17 +308,15 @@ function dashboardNormaliseMoneyRows(rawRows, fromBound, toBound) {
     if (t < fromBound.getTime() || t > toBound.getTime()) return;
 
     var amountRaw = normalizeValue(row['Сумма']);
-    var operation = String(row['Вид операции'] || '').trim();
-    var income, expenseSigned;
+    var operation = dashboardNormalizeOperationType(row['Вид операции'], amountRaw);
+
+    var income = 0;
+    var expenseSigned = 0;
+
     if (operation === 'Приход') {
-      income        = Math.abs(amountRaw);
-      expenseSigned = 0;
+      income = Math.abs(amountRaw);
     } else if (operation === 'Расход') {
-      income        = 0;
       expenseSigned = -Math.abs(amountRaw);
-    } else {
-      income        = 0;
-      expenseSigned = 0;
     }
 
     result.push({

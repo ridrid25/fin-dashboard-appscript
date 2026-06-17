@@ -7,9 +7,11 @@
  * Columns expected in sheet "Деньги":
  *   Дата, Счет, Контрагент, Статья, Раздел ОДДС, Вид операции, Направление, Сумма
  *
- * KEY DECISION:
- *   Money is calculated from "Сумма" + "Вид операции".
- *   The old separate columns "Приход" / "Расход" are not used.
+ * Money contract:
+ *   Вид операции = Приход → +Сумма
+ *   Вид операции = Расход → -Сумма
+ *
+ * Legacy columns "Приход" / "Расход" are intentionally not used.
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -57,12 +59,7 @@ function cashApiMoney(params) {
       return createErrorResponse('Лист "' + CONFIG.SHEETS.MONEY + '" пуст или недоступен.');
     }
 
-    var requiredCols = [
-      CASH_COL.DATE,
-      CASH_COL.SECTION_ODDS,
-      CASH_COL.OPERATION,
-      CASH_COL.AMOUNT
-    ];
+    var requiredCols = [CASH_COL.DATE, CASH_COL.SECTION_ODDS, CASH_COL.OPERATION, CASH_COL.AMOUNT];
     var sampleRow = allRows[0];
     for (var ci = 0; ci < requiredCols.length; ci++) {
       if (!(requiredCols[ci] in sampleRow)) {
@@ -77,19 +74,27 @@ function cashApiMoney(params) {
 
     periodRows = periodRows.map(function(row) {
       var rawAmount = normalizeValue(row[CASH_COL.AMOUNT]);
-      var operationRaw = String(row[CASH_COL.OPERATION] || '').trim();
-      var operationType = cashNormalizeOperationType(operationRaw, rawAmount);
+      var operationType = cashNormalizeOperationType(row[CASH_COL.OPERATION], rawAmount);
 
       var income = 0;
       var expense = 0;
       var amount = 0;
 
-      if (operationType === 'Расход') {
+      if (operationType === 'Приход') {
+        income = Math.abs(rawAmount);
+        amount = income;
+      } else if (operationType === 'Расход') {
         expense = -Math.abs(rawAmount);
         amount = expense;
       } else {
-        income = Math.abs(rawAmount);
-        amount = income;
+        amount = rawAmount;
+        if (rawAmount >= 0) {
+          income = rawAmount;
+          operationType = 'Приход';
+        } else {
+          expense = rawAmount;
+          operationType = 'Расход';
+        }
       }
 
       return {
@@ -288,18 +293,19 @@ function cashApiMoney(params) {
 // PRIVATE HELPERS
 // ─────────────────────────────────────────────────────────────
 
-function cashNormalizeOperationType(operationRaw, rawAmount) {
-  var op = String(operationRaw || '').toLowerCase().trim();
+function cashNormalizeOperationType(operation, rawAmount) {
+  var op = String(operation || '').trim().toLowerCase();
 
-  if (/расход|плат[её]ж|списан|оплат|выбыт/i.test(op)) {
-    return 'Расход';
-  }
-  if (/приход|поступ|зачисл|выруч|доход/i.test(op)) {
+  if (/приход|поступ|зачисл|выручк|доход/.test(op)) {
     return 'Приход';
+  }
+  if (/расход|платеж|платёж|списан|оплат|затрат/.test(op)) {
+    return 'Расход';
   }
 
   if (rawAmount < 0) return 'Расход';
-  return 'Приход';
+  if (rawAmount > 0) return 'Приход';
+  return '';
 }
 
 function cashBuildMonthList(fromBound, toBound) {

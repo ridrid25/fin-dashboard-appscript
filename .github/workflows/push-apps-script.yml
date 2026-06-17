@@ -1,0 +1,40 @@
+name: Push Apps Script
+
+on:
+  workflow_dispatch:
+
+jobs:
+  push-apps-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.CLASPRC_JSON }}" ]; then
+            echo "Missing GitHub secret: CLASPRC_JSON"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLASP_JSON }}" ]; then
+            echo "Missing GitHub secret: CLASP_JSON"
+            exit 1
+          fi
+
+      - name: Write clasp credentials
+        shell: bash
+        run: |
+          printf '%s' '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+          printf '%s' '${{ secrets.CLASP_JSON }}' > .clasp.json
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json','utf8')); JSON.parse(require('fs').readFileSync('.clasp.json','utf8')); console.log('clasp secrets JSON is valid');"
+
+      - name: Push apps-script folder to Google Apps Script
+        shell: bash
+        run: |
+          npx -y @google/clasp@latest push --force

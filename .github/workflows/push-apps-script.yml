@@ -31,10 +31,11 @@ jobs:
         shell: bash
         run: |
           printf '%s' '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
-          printf '%s' '${{ secrets.CLASP_JSON }}' > .clasp.json
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json','utf8')); JSON.parse(require('fs').readFileSync('.clasp.json','utf8')); console.log('clasp secrets JSON is valid');"
+          printf '%s' '${{ secrets.CLASP_JSON }}' > apps-script/.clasp.json
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json','utf8')); JSON.parse(require('fs').readFileSync('apps-script/.clasp.json','utf8')); console.log('clasp secrets JSON is valid');"
 
       - name: Push apps-script folder to Google Apps Script
         shell: bash
         run: |
+          cd apps-script
           npx -y @google/clasp@latest push --force

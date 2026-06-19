@@ -1,7 +1,9 @@
 name: Push Apps Script
 
 on:
-  workflow_dispatch:
+     workflow_dispatch:
+     push:
+       branches: [ main ]
 
 jobs:
   push-apps-script:
